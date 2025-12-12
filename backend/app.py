@@ -11,23 +11,39 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# CORS configuration - allow Vercel and local development
-allowed_origins = os.getenv('ALLOWED_ORIGINS', '').split(',') if os.getenv('ALLOWED_ORIGINS') else []
-# Default origins for development and common Vercel patterns
+# CORS configuration - allow Vercel, Render, and local development
+allowed_origins_env = os.getenv('ALLOWED_ORIGINS', '')
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(',') if origin.strip()] if allowed_origins_env else []
+
+# Default origins for development
 default_origins = [
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://*.vercel.app',  # Allow all Vercel preview deployments
+    'http://localhost:5174',
 ]
 
-# Combine and filter empty strings
-all_origins = [origin for origin in allowed_origins + default_origins if origin]
+# For production: allow all Vercel and Render domains by default
+# flask-cors doesn't support wildcards directly, so we use a function
+def get_cors_origins():
+    """Get CORS origins based on environment"""
+    if os.getenv('FLASK_ENV') == 'production':
+        # In production, allow specific origins or use permissive mode
+        if allowed_origins:
+            return allowed_origins
+        else:
+            # Allow all origins in production if not specified (for flexibility)
+            # This allows Vercel preview deployments and Render deployments
+            return "*"
+    else:
+        # In development, use default localhost origins
+        return default_origins
 
 CORS(app, resources={
     r"/api/*": {
-        "origins": all_origins if all_origins else "*",  # Fallback to * if no origins specified
+        "origins": get_cors_origins(),
         "methods": ["GET", "POST", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": False
     }
 })
 

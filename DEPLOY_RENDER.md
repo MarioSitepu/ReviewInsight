@@ -126,10 +126,13 @@ ALLOWED_ORIGINS=https://your-frontend-url.onrender.com
 Tambahkan:
 
 ```
-VITE_API_URL=https://your-backend-url.onrender.com/api
+VITE_API_URL=https://review-insight-backend.onrender.com/api
 ```
 
-**Penting**: Ganti `your-backend-url` dengan URL backend yang sudah dibuat di Part 2.
+**Penting**: 
+- Ganti `review-insight-backend` dengan nama service backend Anda di Render
+- Format: `https://[service-name].onrender.com/api`
+- Pastikan backend sudah deploy dan running sebelum deploy frontend
 
 ### 3.3 Advanced Settings
 

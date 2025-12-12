@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 // Priority: VITE_API_URL env var > production default > dev proxy
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.PROD 
-    ? 'https://yourusername.pythonanywhere.com/api'  // Update with your PythonAnywhere URL
+    ? 'https://review-insight-backend.onrender.com/api'  // Render backend URL
     : '/api'  // Dev mode uses Vite proxy
   );
 
