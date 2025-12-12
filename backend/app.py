@@ -71,6 +71,25 @@ def handle_preflight():
         response.headers.add("Access-Control-Max-Age", "3600")
         return response
 
+# Add CORS headers to all responses (including errors)
+@app.after_request
+def after_request(response):
+    # Add CORS headers to all responses
+    origin = request.headers.get("Origin", "*")
+    if cors_origins == "*":
+        response.headers.add("Access-Control-Allow-Origin", "*")
+    elif isinstance(cors_origins, list) and origin in cors_origins:
+        response.headers.add("Access-Control-Allow-Origin", origin)
+    elif isinstance(cors_origins, list) and cors_origins:
+        response.headers.add("Access-Control-Allow-Origin", cors_origins[0])
+    else:
+        response.headers.add("Access-Control-Allow-Origin", "*")
+    
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+    response.headers.add("Access-Control-Allow-Credentials", "false")
+    return response
+
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
     'DATABASE_URL',
@@ -157,10 +176,17 @@ def analyze_review():
 @app.route('/api/reviews', methods=['GET'])
 def get_reviews():
     try:
+        print("[INFO] Fetching reviews from database...")
         reviews = Review.query.order_by(Review.created_at.desc()).all()
+        print(f"[SUCCESS] Found {len(reviews)} reviews")
         return jsonify([review.to_dict() for review in reviews]), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[ERROR] Gagal memuat reviews: {str(e)}")
+        print(f"[ERROR] Traceback: {error_trace}")
+        # Return error with CORS headers (handled by after_request)
+        return jsonify({'error': str(e), 'details': error_trace[:500]}), 500
 
 
 @app.route('/api/reviews/<int:review_id>', methods=['DELETE'])
