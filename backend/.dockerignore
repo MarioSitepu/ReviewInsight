@@ -23,4 +23,6 @@ test_*.py
 check_*.py
 create_database.py
 start_backend.bat
-
+*.rar
+*.zip
+*.7z

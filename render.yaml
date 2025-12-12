@@ -5,6 +5,7 @@ services:
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
+    plan: free  # Use free tier
     envVars:
       - key: DATABASE_URL
         sync: false

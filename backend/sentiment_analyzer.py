@@ -11,11 +11,22 @@ def get_sentiment_pipeline():
         print("[INFO] Mengunduh model sentiment analysis... (pertama kali bisa memakan waktu 5-10 menit)")
         print("       Model: cardiffnlp/twitter-roberta-base-sentiment-latest (~500MB)")
         # Using a pre-trained model for sentiment analysis
-        sentiment_pipeline = pipeline(
-            "sentiment-analysis",
-            model="cardiffnlp/twitter-roberta-base-sentiment-latest",
-            return_all_scores=True
-        )
+        # Use device_map="cpu" to force CPU usage and reduce memory
+        try:
+            sentiment_pipeline = pipeline(
+                "sentiment-analysis",
+                model="cardiffnlp/twitter-roberta-base-sentiment-latest",
+                return_all_scores=True,
+                device=-1  # Use CPU (-1) instead of GPU to reduce memory usage
+            )
+        except Exception as e:
+            # Fallback without device specification
+            print(f"[WARNING] Error setting device, using default: {e}")
+            sentiment_pipeline = pipeline(
+                "sentiment-analysis",
+                model="cardiffnlp/twitter-roberta-base-sentiment-latest",
+                return_all_scores=True
+            )
         print("[SUCCESS] Model berhasil dimuat!")
     return sentiment_pipeline
 

@@ -79,10 +79,13 @@ ALLOWED_ORIGINS=https://your-frontend-url.onrender.com
 
 - **Auto-Deploy**: Yes (auto-deploy dari GitHub)
 - **Health Check Path**: `/api/health`
-- **Docker Command** (opsional, jika tidak pakai CMD di Dockerfile):
-  ```
-  gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120 app:app
-  ```
+- **Plan**: Free (atau Starter jika perlu always-on)
+- **Instance Type**: Free tier (512MB RAM) - cukup untuk 1 worker
+
+**Note**: 
+- Free tier menggunakan 1 worker untuk menghemat memory
+- Torch + Transformers memakan banyak memory, jadi kita reduce workers
+- Jika masih timeout, pertimbangkan upgrade ke Starter plan ($7/month)
 
 ### 2.5 Deploy
 
