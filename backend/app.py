@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 from datetime import datetime
 import os
 from dotenv import load_dotenv
@@ -105,11 +106,30 @@ def after_request(response):
     return response
 
 # Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-    'DATABASE_URL',
-    'postgresql://postgres:postgres@localhost:5432/review_analyzer'
-)
+database_url = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/review_analyzer')
+
+# For Neon (and other cloud PostgreSQL), ensure SSL is properly configured
+# Neon requires SSL connections, so add sslmode=require if not present
+if database_url.startswith('postgresql://') and 'sslmode' not in database_url:
+    # Add sslmode=require for secure connections (Neon requires this)
+    separator = '&' if '?' in database_url else '?'
+    database_url = f"{database_url}{separator}sslmode=require"
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Connection pooling configuration for better reliability
+# These settings help with connection timeouts and SSL issues
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,  # Verify connections before using them
+    'pool_recycle': 300,    # Recycle connections after 5 minutes
+    'pool_size': 5,         # Number of connections to maintain
+    'max_overflow': 10,     # Additional connections beyond pool_size
+    'connect_args': {
+        'connect_timeout': 10,  # Connection timeout in seconds
+        'sslmode': 'require'    # Force SSL for Neon
+    }
+}
 
 db = SQLAlchemy(app)
 
@@ -191,6 +211,17 @@ def analyze_review():
 def get_reviews():
     try:
         print("[INFO] Fetching reviews from database...")
+        # Test database connection first
+        try:
+            db.session.execute(text('SELECT 1'))
+            print("[INFO] Database connection OK")
+        except Exception as conn_error:
+            print(f"[WARNING] Database connection test failed: {conn_error}")
+            # Try to reconnect
+            db.session.remove()
+            db.session.execute(text('SELECT 1'))
+            print("[INFO] Database reconnected")
+        
         reviews = Review.query.order_by(Review.created_at.desc()).all()
         print(f"[SUCCESS] Found {len(reviews)} reviews")
         return jsonify([review.to_dict() for review in reviews]), 200
@@ -199,8 +230,18 @@ def get_reviews():
         error_trace = traceback.format_exc()
         print(f"[ERROR] Gagal memuat reviews: {str(e)}")
         print(f"[ERROR] Traceback: {error_trace}")
+        
+        # Try to rollback and close connection on error
+        try:
+            db.session.rollback()
+            db.session.remove()
+        except:
+            pass
+        
         # Return error with CORS headers (handled by after_request)
-        return jsonify({'error': str(e), 'details': error_trace[:500]}), 500
+        error_message = str(e)
+        # Don't expose full traceback to client, just error message
+        return jsonify({'error': 'Gagal memuat review dari database', 'details': error_message[:200]}), 500
 
 
 @app.route('/api/reviews/<int:review_id>', methods=['DELETE'])
