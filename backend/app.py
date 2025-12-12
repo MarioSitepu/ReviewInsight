@@ -70,39 +70,50 @@ CORS(app, resources={
 })
 
 # Add manual CORS headers for OPTIONS requests (preflight) to ensure they work
+# Use set() instead of add() to avoid duplicates
 @app.before_request
 def handle_preflight():
     if request.method == "OPTIONS":
         response = jsonify({})
         origin = request.headers.get("Origin", "*")
         if cors_origins == "*":
-            response.headers.add("Access-Control-Allow-Origin", "*")
-        elif origin in cors_origins:
-            response.headers.add("Access-Control-Allow-Origin", origin)
+            response.headers.set("Access-Control-Allow-Origin", "*")
+        elif isinstance(cors_origins, list) and origin in cors_origins:
+            response.headers.set("Access-Control-Allow-Origin", origin)
+        elif isinstance(cors_origins, list) and cors_origins:
+            response.headers.set("Access-Control-Allow-Origin", cors_origins[0])
         else:
-            response.headers.add("Access-Control-Allow-Origin", cors_origins[0] if cors_origins else "*")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        response.headers.add("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-        response.headers.add("Access-Control-Max-Age", "3600")
+            response.headers.set("Access-Control-Allow-Origin", "*")
+        response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        response.headers.set("Access-Control-Max-Age", "3600")
         return response
 
 # Add CORS headers to all responses (including errors)
+# Use set() instead of add() to avoid duplicate headers (Flask-CORS may already add them)
 @app.after_request
 def after_request(response):
-    # Add CORS headers to all responses
+    # Only add CORS headers if they don't already exist (Flask-CORS may have added them)
     origin = request.headers.get("Origin", "*")
-    if cors_origins == "*":
-        response.headers.add("Access-Control-Allow-Origin", "*")
-    elif isinstance(cors_origins, list) and origin in cors_origins:
-        response.headers.add("Access-Control-Allow-Origin", origin)
-    elif isinstance(cors_origins, list) and cors_origins:
-        response.headers.add("Access-Control-Allow-Origin", cors_origins[0])
-    else:
-        response.headers.add("Access-Control-Allow-Origin", "*")
     
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-    response.headers.add("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-    response.headers.add("Access-Control-Allow-Credentials", "false")
+    # Set (not add) CORS headers to avoid duplicates
+    if cors_origins == "*":
+        response.headers.set("Access-Control-Allow-Origin", "*")
+    elif isinstance(cors_origins, list) and origin in cors_origins:
+        response.headers.set("Access-Control-Allow-Origin", origin)
+    elif isinstance(cors_origins, list) and cors_origins:
+        response.headers.set("Access-Control-Allow-Origin", cors_origins[0])
+    else:
+        response.headers.set("Access-Control-Allow-Origin", "*")
+    
+    # Only set headers if they don't exist
+    if "Access-Control-Allow-Headers" not in response.headers:
+        response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    if "Access-Control-Allow-Methods" not in response.headers:
+        response.headers.set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+    if "Access-Control-Allow-Credentials" not in response.headers:
+        response.headers.set("Access-Control-Allow-Credentials", "false")
+    
     return response
 
 # Database configuration
