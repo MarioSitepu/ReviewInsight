@@ -81,61 +81,62 @@ def extract_key_points_simple(text):
             category = ""
             analysis = ""
             
-            # Make concise points only
+            # Make points only - no explanations
             if any(kw in sentence_lower for kw in ['menarik', 'attractive', 'interesting']):
                 key_points.append("• Produk menarik")
             elif any(kw in sentence_lower for kw in ['ketagihan', 'addicted']):
-                key_points.append("• Pengguna merasa ketagihan")
+                key_points.append("• Ketagihan")
             elif any(kw in sentence_lower for kw in ['suka', 'like', 'love', 'sangat suka']):
-                key_points.append("• Pengguna menyukai produk")
+                key_points.append("• Disukai")
             elif any(kw in sentence_lower for kw in quality_keywords):
                 if any(kw in sentence_lower for kw in negative_keywords):
-                    key_points.append("• Kualitas produk buruk")
+                    key_points.append("• Kualitas buruk")
                 elif any(kw in sentence_lower for kw in positive_keywords):
-                    key_points.append("• Kualitas produk baik")
-                else:
-                    key_points.append("• Menyebutkan kualitas produk")
+                    key_points.append("• Kualitas baik")
             elif any(kw in sentence_lower for kw in ['bau', 'smell', 'aroma']):
                 if any(kw in sentence_lower for kw in ['aneh', 'tidak enak', 'busuk', 'weird']):
-                    key_points.append("• Bau produk tidak normal")
+                    key_points.append("• Bau tidak normal")
                 else:
-                    key_points.append("• Menyebutkan bau produk")
+                    key_points.append("• Bau produk")
             elif any(kw in sentence_lower for kw in ['rasa', 'taste', 'enak', 'dimakan', 'diminum']):
                 if any(kw in sentence_lower for kw in negative_keywords):
-                    key_points.append("• Rasa tidak memuaskan")
+                    key_points.append("• Rasa tidak enak")
                 else:
-                    key_points.append("• Menyebutkan rasa produk")
+                    key_points.append("• Rasa enak")
             elif any(kw in sentence_lower for kw in service_keywords):
                 if any(kw in sentence_lower for kw in ['cepat', 'fast']):
                     key_points.append("• Pengiriman cepat")
                 elif any(kw in sentence_lower for kw in ['lambat', 'slow']):
                     key_points.append("• Pengiriman lambat")
                 else:
-                    key_points.append("• Menyebutkan layanan")
+                    key_points.append("• Layanan")
             elif any(kw in sentence_lower for kw in price_keywords):
                 if any(kw in sentence_lower for kw in ['mahal', 'expensive']):
                     key_points.append("• Harga mahal")
                 elif any(kw in sentence_lower for kw in ['murah', 'cheap']):
-                    key_points.append("• Harga terjangkau")
+                    key_points.append("• Harga murah")
                 else:
-                    key_points.append("• Menyebutkan harga")
+                    key_points.append("• Harga")
             elif any(kw in sentence_lower for kw in feature_keywords):
-                key_points.append("• Menyebutkan fitur produk")
+                key_points.append("• Fitur produk")
             elif any(kw in sentence_lower for kw in negative_keywords):
                 if 'jelek' in sentence_lower or 'buruk' in sentence_lower:
-                    key_points.append("• Produk dinilai buruk")
+                    key_points.append("• Kualitas buruk")
                 elif 'aneh' in sentence_lower or 'weird' in sentence_lower:
-                    key_points.append("• Produk tidak normal")
+                    key_points.append("• Tidak normal")
                 else:
-                    # Make sentence concise
-                    concise = sentence[:60] + '...' if len(sentence) > 60 else sentence
-                    key_points.append(f"• {concise}")
+                    # Extract key words only
+                    words = [w for w in sentence.split() if len(w) > 3][:3]
+                    key_points.append(f"• {' '.join(words)}")
             elif any(kw in sentence_lower for kw in positive_keywords):
-                key_points.append("• Umpan balik positif")
+                key_points.append("• Positif")
             else:
-                # Make sentence concise
-                concise = sentence[:60] + '...' if len(sentence) > 60 else sentence
-                key_points.append(f"• {concise}")
+                # Extract key words only - max 5 words
+                words = [w for w in sentence.split() if len(w) > 2][:5]
+                if words:
+                    key_points.append(f"• {' '.join(words)}")
+                else:
+                    key_points.append(f"• {sentence[:30]}")
             
             if sentence not in seen_sentences:
                 seen_sentences.add(sentence)
@@ -180,28 +181,26 @@ def extract_key_points_simple(text):
             text_lower = text.lower()
             short_points = []
             
-            # Analyze short reviews more intelligently - concise points only
+            # Analyze short reviews more intelligently - points only, no explanations
             if any(word in text_lower for word in ['menarik', 'attractive', 'interesting']):
-                short_points.append("• Produk menarik dan menarik perhatian")
-            if any(word in text_lower for word in ['ketagihan', 'addicted', 'ketagihan']):
-                short_points.append("• Pengguna merasa ketagihan dengan produk")
+                short_points.append("• Produk menarik")
+            if any(word in text_lower for word in ['ketagihan', 'addicted']):
+                short_points.append("• Ketagihan")
             if any(word in text_lower for word in ['suka', 'like', 'love', 'sangat suka']):
-                short_points.append("• Pengguna menyukai produk")
+                short_points.append("• Disukai")
             if any(word in text_lower for word in ['bagus', 'baik', 'good', 'great', 'excellent', 'mantap']):
-                short_points.append("• Kualitas produk dinilai baik")
+                short_points.append("• Kualitas baik")
             if any(word in text_lower for word in ['jelek', 'buruk', 'bad', 'terrible']):
-                short_points.append("• Kualitas produk dinilai buruk")
+                short_points.append("• Kualitas buruk")
             if any(word in text_lower for word in ['bau', 'smell', 'aroma']) and any(word in text_lower for word in ['aneh', 'tidak enak', 'busuk', 'weird']):
-                short_points.append("• Bau produk tidak normal")
+                short_points.append("• Bau tidak normal")
             
-            # Check for specific aspects - concise
+            # Check for specific aspects - points only
             if any(word in text_lower for word in ['harga', 'price', 'murah', 'mahal', 'cheap', 'expensive']):
                 if any(word in text_lower for word in ['mahal', 'expensive', 'overpriced']):
-                    short_points.append("• Harga terlalu mahal")
+                    short_points.append("• Harga mahal")
                 elif any(word in text_lower for word in ['murah', 'cheap', 'affordable']):
-                    short_points.append("• Harga terjangkau")
-                else:
-                    short_points.append("• Menyebutkan aspek harga")
+                    short_points.append("• Harga murah")
             
             if any(word in text_lower for word in ['pengiriman', 'delivery', 'shipping']):
                 if any(word in text_lower for word in ['cepat', 'fast']):
@@ -261,49 +260,60 @@ def extract_key_points_groq(text):
         
         # Improved prompt - multilingual support (Indonesian & English)
         if len(text.strip()) < 20:
-            # For short reviews, provide concise points
+            # For short reviews, provide concise points only
             prompt = f"""Review produk: "{text}"
 
-Ekstrak 3-5 poin penting dari review di atas. Format output hanya poin-poin ringkas saja, tanpa penjelasan panjang.
+Ekstrak 3-5 poin penting dari review di atas. HANYA tulis poin-poin singkat saja, TANPA penjelasan apapun.
 
-Format output (3-5 poin, maksimal):
-• [Poin 1]
-• [Poin 2]
-• [Poin 3]
+Format output (3-5 poin):
+• [Poin singkat 1]
+• [Poin singkat 2]
+• [Poin singkat 3]
 
 Contoh:
 - Review: "jelek oi"
 - Output: 
-• Kualitas produk dinilai buruk
-• Pengguna tidak puas dengan produk
+• Kualitas buruk
+• Tidak puas
 
-Jawab dalam bahasa yang sama dengan review (Indonesia atau Inggris). Hanya poin-poin ringkas, tanpa penjelasan."""
+- Review: "produk menarik, ketagihan"
+- Output:
+• Produk menarik
+• Ketagihan
+
+Jawab dalam bahasa yang sama dengan review. HANYA poin singkat, TANPA penjelasan."""
         else:
             # For longer reviews, use concise prompt
             prompt = f"""Review produk: "{text}"
 
-Ekstrak 3-5 poin penting dari review di atas. Format output hanya poin-poin ringkas saja, tanpa penjelasan panjang.
+Ekstrak 3-5 poin penting dari review di atas. HANYA tulis poin-poin singkat saja, TANPA penjelasan apapun.
 
 Format output (minimal 3 poin, maksimal 5 poin):
-• [Poin 1]
-• [Poin 2]
-• [Poin 3]
-• [Poin 4] (jika ada)
-• [Poin 5] (jika ada)
+• [Poin singkat 1]
+• [Poin singkat 2]
+• [Poin singkat 3]
+• [Poin singkat 4] (jika ada)
+• [Poin singkat 5] (jika ada)
 
 Contoh:
 - Review: "baunya aneh, tidak enak dimulut ketika dimakan"
 - Output: 
-• Bau produk tidak normal
-• Rasa tidak enak saat dikonsumsi
-• Masalah kualitas atau kesegaran produk
+• Bau tidak normal
+• Rasa tidak enak
+• Masalah kualitas
 
-Jawab dalam bahasa yang sama dengan review (Indonesia atau Inggris). Hanya poin-poin ringkas, tanpa penjelasan panjang."""
+- Review: "produk ini sangat menarik, saya jadi ketagihan"
+- Output:
+• Produk menarik
+• Ketagihan
+• Kepuasan tinggi
+
+Jawab dalam bahasa yang sama dengan review. HANYA poin singkat, TANPA penjelasan apapun."""
         
         data = {
             "model": "llama-3.1-8b-instant",  # Free tier model
             "messages": [
-                {"role": "system", "content": "You are an expert product review analyst. Your task is to extract 3-5 key points from product reviews in a concise format. Format each point as: • [Brief point]. Do NOT provide long explanations or analysis. Just list the key points concisely. Always respond in the same language as the review (Indonesian or English). Minimum 3 points, maximum 5 points."},
+                {"role": "system", "content": "You are an expert product review analyst. Your task is to extract 3-5 key points from product reviews. Format each point as: • [Short point only]. Do NOT provide explanations, analysis, or descriptions. Just list short points only. Each point should be maximum 10 words. Always respond in the same language as the review (Indonesian or English). Minimum 3 points, maximum 5 points."},
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": 200,
@@ -575,21 +585,21 @@ def extract_key_points(text):
                 if model is None:
                     raise Exception("Tidak ada model yang tersedia")
                 
-                prompt = f"""Ekstrak 3-5 poin penting dari review produk berikut. Format output hanya poin-poin ringkas saja, tanpa penjelasan panjang.
+                prompt = f"""Ekstrak 3-5 poin penting dari review produk berikut. HANYA tulis poin-poin singkat saja, TANPA penjelasan apapun.
 
 Review: {text}
 
 Format output (minimal 3 poin, maksimal 5 poin):
-• [Poin 1]
-• [Poin 2]
-• [Poin 3]
-• [Poin 4] (jika ada)
-• [Poin 5] (jika ada)
+• [Poin singkat 1]
+• [Poin singkat 2]
+• [Poin singkat 3]
+• [Poin singkat 4] (jika ada)
+• [Poin singkat 5] (jika ada)
 
 Contoh format:
-• Bau produk tidak normal
-• Rasa tidak enak saat dikonsumsi
-• Masalah kualitas atau kesegaran produk
+• Bau tidak normal
+• Rasa tidak enak
+• Masalah kualitas
 
 Poin Penting:"""
                 
