@@ -312,6 +312,54 @@ The application includes comprehensive error handling:
 - Gemini API requires internet connection and valid API key
 - Database tables are created automatically on first run
 
+## Deployment
+
+### Option 1: Vercel (Frontend) + PythonAnywhere (Backend) ⭐ Recommended
+
+**Best for:** Free hosting, easy setup, great for personal projects
+
+1. **Deploy Backend to PythonAnywhere:**
+   - Follow guide: [DEPLOY_VERCEL_PYTHONANYWHERE.md](DEPLOY_VERCEL_PYTHONANYWHERE.md#part-1-deploy-backend-ke-pythonanywhere)
+
+2. **Deploy Frontend to Vercel:**
+   - Follow guide: [DEPLOY_VERCEL_PYTHONANYWHERE.md](DEPLOY_VERCEL_PYTHONANYWHERE.md#part-2-deploy-frontend-ke-vercel)
+
+**Benefits:**
+- ✅ Free tier available
+- ✅ Easy setup
+- ✅ Auto-deploy from GitHub (Vercel)
+- ✅ Great for learning and small projects
+
+### Option 2: Docker Compose (Full Stack)
+
+1. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys and database password
+   ```
+
+2. **Deploy:**
+   ```bash
+   # Linux/Mac
+   ./deploy.sh
+   
+   # Windows
+   deploy.bat
+   ```
+
+3. **Access:**
+   - Frontend: http://localhost:80
+   - Backend API: http://localhost:5000
+
+### Option 3: Other Cloud Platforms
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for:
+- Docker deployment
+- Heroku deployment
+- AWS/Azure/GCP deployment
+- Production configuration
+- Monitoring and troubleshooting
+
 ## License
 
 This project is created for educational purposes.

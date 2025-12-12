@@ -28,7 +28,13 @@ import { ThemeProvider, useTheme } from '@/components/ThemeProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { cn } from '@/lib/utils';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://localhost:5000/api');
+// API URL configuration
+// Priority: VITE_API_URL env var > production default > dev proxy
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.PROD 
+    ? 'https://yourusername.pythonanywhere.com/api'  // Update with your PythonAnywhere URL
+    : '/api'  // Dev mode uses Vite proxy
+  );
 
 function AppContent() {
   const { theme } = useTheme();
@@ -210,7 +216,46 @@ function AppContent() {
             </motion.div>
             
             <div className="flex items-center gap-2 sm:gap-4">
+              {/* Desktop Menu - Hidden on mobile */}
+              <div className="hidden lg:flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const element = document.querySelector('[data-section="analyze"]');
+                    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="text-sm"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Analisis
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const element = document.querySelector('[data-section="reviews"]');
+                    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="text-sm"
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  Review
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchReviews}
+                  disabled={loadingReviews}
+                  className="text-sm"
+                >
+                  <RefreshCw className={cn("h-4 w-4 mr-2", loadingReviews && "animate-spin")} />
+                  Refresh
+                </Button>
+              </div>
+              
               <ThemeToggle />
+              
               {/* Mobile Menu Button */}
               <Button
                 variant="ghost"

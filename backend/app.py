@@ -10,7 +10,26 @@ from key_points_extractor import extract_key_points
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+# CORS configuration - allow Vercel and local development
+allowed_origins = os.getenv('ALLOWED_ORIGINS', '').split(',') if os.getenv('ALLOWED_ORIGINS') else []
+# Default origins for development and common Vercel patterns
+default_origins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://*.vercel.app',  # Allow all Vercel preview deployments
+]
+
+# Combine and filter empty strings
+all_origins = [origin for origin in allowed_origins + default_origins if origin]
+
+CORS(app, resources={
+    r"/api/*": {
+        "origins": all_origins if all_origins else "*",  # Fallback to * if no origins specified
+        "methods": ["GET", "POST", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
@@ -130,6 +149,8 @@ def health_check():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Development mode
+    debug_mode = os.getenv('FLASK_ENV') != 'production'
+    app.run(debug=debug_mode, host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
 
 
