@@ -53,3 +53,11 @@ htmlcov/
 
 # Docker
 .docker/
+
+# Archive files (too large for GitHub)
+*.rar
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
