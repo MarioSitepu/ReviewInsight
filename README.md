@@ -53,16 +53,32 @@ Before you begin, ensure you have the following installed:
 
 - **Python 3.8+**
 - **Node.js 14+** and npm
-- **PostgreSQL 12+**
+- **Database**: 
+  - **Recommended**: Neon (Serverless PostgreSQL) - [Setup Guide](SETUP_NEON_DATABASE.md)
+  - **Alternative**: PostgreSQL 12+ (local installation)
 - **Google Gemini API Key** (Get it from [Google AI Studio](https://makersuite.google.com/app/apikey))
 
 ## Setup Instructions
 
 ### 1. Database Setup
 
-**Option A: Using Python Script (Recommended - Works on all platforms)**
+**Option A: Neon (Serverless PostgreSQL) ⭐ Recommended**
 
-The easiest way is to use our helper script:
+Neon adalah serverless PostgreSQL yang gratis dan mudah digunakan:
+
+1. **Daftar di Neon**: https://neon.tech
+2. **Buat project baru** di dashboard
+3. **Copy connection string** dari Neon dashboard
+4. **Paste ke `.env` file**:
+   ```env
+   DATABASE_URL=postgresql://user:pass@ep-xxx-xxx.region.aws.neon.tech/dbname?sslmode=require
+   ```
+
+**📖 Panduan lengkap**: Lihat [SETUP_NEON_DATABASE.md](SETUP_NEON_DATABASE.md)
+
+**Option B: Local PostgreSQL**
+
+Jika ingin menggunakan PostgreSQL lokal:
 
 ```bash
 # Windows
@@ -73,30 +89,12 @@ chmod +x create_database.sh
 ./create_database.sh
 ```
 
-This script will automatically:
-- Check if the database exists
-- Create it if it doesn't
-- Handle connection errors gracefully
-
-**Option B: Using psql**
-
-Connect to PostgreSQL and create the database:
-
+Atau manual:
 ```sql
 psql -U postgres
 CREATE DATABASE review_analyzer;
 \q
 ```
-
-**Option C: Using createdb command (if available in PATH)**
-
-```bash
-createdb review_analyzer
-```
-
-**Note:** If `createdb` command is not found (common on Windows), use Option A or B above.
-
-**📖 Need help with database setup?** See `SETUP_DATABASE.md` for comprehensive guide including installation, troubleshooting, and all common issues.
 
 ### 2. Backend Setup
 
@@ -133,11 +131,18 @@ cp .env.example .env
 5. Edit `.env` file with your configuration:
 
 ```env
-DATABASE_URL=postgresql://username:password@localhost:5432/review_analyzer
+# Database - Use Neon connection string (recommended)
+DATABASE_URL=postgresql://user:pass@ep-xxx-xxx.region.aws.neon.tech/dbname?sslmode=require
+
+# AI API Keys
 GEMINI_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
 ```
 
-**Note**: Replace `username` and `password` with your PostgreSQL credentials.
+**Note**: 
+- Untuk Neon: Dapatkan connection string dari https://console.neon.tech
+- Untuk local PostgreSQL: `postgresql://username:password@localhost:5432/review_analyzer`
 
 ### 3. Frontend Setup
 
@@ -314,7 +319,22 @@ The application includes comprehensive error handling:
 
 ## Deployment
 
-### Option 1: Vercel (Frontend) + PythonAnywhere (Backend) ⭐ Recommended
+### Option 1: Render dengan Docker ⭐ Recommended
+
+**Best for:** Full-stack deployment, Docker support, auto-deploy, HTTPS gratis
+
+1. **Deploy Backend & Frontend ke Render:**
+   - Follow guide: [DEPLOY_RENDER.md](DEPLOY_RENDER.md)
+
+**Benefits:**
+- ✅ Free tier available
+- ✅ Docker support
+- ✅ Auto-deploy from GitHub
+- ✅ HTTPS otomatis
+- ✅ Custom domain gratis
+- ✅ Easy setup dengan render.yaml
+
+### Option 2: Vercel (Frontend) + PythonAnywhere (Backend)
 
 **Best for:** Free hosting, easy setup, great for personal projects
 
@@ -323,12 +343,6 @@ The application includes comprehensive error handling:
 
 2. **Deploy Frontend to Vercel:**
    - Follow guide: [DEPLOY_VERCEL_PYTHONANYWHERE.md](DEPLOY_VERCEL_PYTHONANYWHERE.md#part-2-deploy-frontend-ke-vercel)
-
-**Benefits:**
-- ✅ Free tier available
-- ✅ Easy setup
-- ✅ Auto-deploy from GitHub (Vercel)
-- ✅ Great for learning and small projects
 
 ### Option 2: Docker Compose (Full Stack)
 

@@ -17,8 +17,10 @@ Panduan lengkap untuk deploy ReviewInsight dengan frontend di Vercel dan backend
    - Buat akun gratis (Beginner plan cukup untuk testing)
 
 2. **Siapkan Database**
-   - PythonAnywhere menyediakan MySQL gratis
-   - Atau gunakan PostgreSQL dari service eksternal (ElephantSQL, Supabase, dll)
+   - **Recommended**: Gunakan Neon (Serverless PostgreSQL) - Gratis & mudah
+     - Setup: https://neon.tech (lihat [SETUP_NEON_DATABASE.md](SETUP_NEON_DATABASE.md))
+     - Dapatkan connection string dari Neon dashboard
+   - **Alternative**: PythonAnywhere MySQL (gratis) atau PostgreSQL eksternal
 
 ### 1.2 Upload Files ke PythonAnywhere
 
@@ -54,19 +56,22 @@ cd your-repo/backend
 
 2. **Isi dengan konfigurasi:**
    ```env
-   DATABASE_URL=mysql://username:password@hostname/database_name
-   # atau untuk PostgreSQL eksternal:
-   DATABASE_URL=postgresql://user:pass@host:5432/dbname
+   # Database - Recommended: Neon (see SETUP_NEON_DATABASE.md)
+   DATABASE_URL=postgresql://username:password@ep-xxx-xxx-pooler.region.aws.neon.tech/dbname?sslmode=require
    
+   # AI API Keys
    GEMINI_API_KEY=your_gemini_api_key_here
    GROQ_API_KEY=your_groq_api_key_here
    HUGGINGFACE_API_KEY=your_huggingface_api_key_here
    
+   # Settings
    FLASK_ENV=production
    USE_GEMINI=true
    USE_GROQ_KEY_POINTS=true
    USE_HUGGINGFACE_KEY_POINTS=true
    ```
+   
+   **Note**: Untuk Neon setup, lihat [SETUP_NEON_DATABASE.md](SETUP_NEON_DATABASE.md)
 
 ### 1.4 Install Dependencies
 
@@ -87,7 +92,18 @@ pip3.10 install --user torch --index-url https://download.pytorch.org/whl/cpu
 
 ### 1.5 Setup Database
 
-**Jika menggunakan MySQL (PythonAnywhere default):**
+**Recommended: Neon (Serverless PostgreSQL)**
+
+1. **Daftar di Neon**: https://neon.tech
+2. **Buat project baru** di Neon dashboard
+3. **Copy connection string** (gunakan pooled connection untuk production)
+4. **Paste ke .env file**:
+   ```env
+   DATABASE_URL=postgresql://user:pass@ep-xxx-xxx-pooler.region.aws.neon.tech/dbname?sslmode=require
+   ```
+5. **Setup lengkap**: Lihat [SETUP_NEON_DATABASE.md](SETUP_NEON_DATABASE.md)
+
+**Alternative: MySQL (PythonAnywhere default)**
 
 1. Buka **Databases** tab di PythonAnywhere
 2. Buat database baru
@@ -100,10 +116,6 @@ pip3.10 install --user torch --index-url https://download.pytorch.org/whl/cpu
    ```env
    DATABASE_URL=mysql+pymysql://username:password@hostname/database_name
    ```
-
-**Jika menggunakan PostgreSQL eksternal:**
-- Gunakan ElephantSQL (gratis): https://www.elephantsql.com
-- Atau Supabase (gratis): https://supabase.com
 
 ### 1.6 Configure Web App
 

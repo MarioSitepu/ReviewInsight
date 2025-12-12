@@ -18,17 +18,21 @@ RUN pip install gunicorn
 # Copy application code
 COPY . .
 
+# Copy and setup start script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Expose port
-EXPOSE 5000
+# Expose port (Render uses PORT env var)
+EXPOSE ${PORT:-5000}
 
-# Health check
+# Health check (Render will override with its own health check)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:5000/api/health')"
+    CMD python -c "import requests; requests.get('http://localhost:${PORT:-5000}/api/health')" || exit 1
 
-# Run with Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "2", "--timeout", "120", "app:app"]
+# Run with Gunicorn via start script (handles PORT env var)
+CMD ["/app/start.sh"]
 
