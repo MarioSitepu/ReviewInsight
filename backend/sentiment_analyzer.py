@@ -52,6 +52,16 @@ def analyze_sentiment(text):
         # More aggressive detection for Indonesian language
         text_lower = text.lower()
         
+        # Strong positive indicators (especially Indonesian)
+        strong_positive_indicators = [
+            'menarik', 'ketagihan', 'suka', 'sangat suka', 'love', 'loved',
+            'bagus', 'baik', 'excellent', 'sempurna', 'perfect', 'menakjubkan', 'amazing',
+            'recommended', 'rekomendasi', 'puas', 'satisfied', 'senang', 'happy',
+            'worth', 'layak', 'value', 'nilai', 'mantap', 'top', 'terbaik', 'best',
+            'cepat', 'fast', 'efisien', 'efficient', 'mudah', 'easy', 'simple',
+            'enak', 'lezat', 'tasty', 'delicious', 'wow', 'keren', 'cool', 'great'
+        ]
+        
         # Strong negative indicators (especially Indonesian)
         strong_negative_indicators = [
             'tidak sesuai', 'tidak memuaskan', 'tidak layak', 'tidak recommended',
@@ -82,7 +92,8 @@ def analyze_sentiment(text):
             'woi', 'weh', 'apalah', 'apaan', 'gajelas', 'gaje', 'gimana', 'kenapa'
         ])
         
-        # Check for negative patterns
+        # Check for positive and negative patterns
+        has_positive = any(indicator in text_lower for indicator in strong_positive_indicators)
         has_negative = any(indicator in text_lower for indicator in strong_negative_indicators)
         
         # Get all scores
@@ -90,8 +101,23 @@ def analyze_sentiment(text):
         positive_score = next((r['score'] for r in results if 'pos' in r['label'].lower() or 'label_2' in r['label'].lower()), 0)
         neutral_score = next((r['score'] for r in results if 'neutral' in r['label'].lower() or 'label_1' in r['label'].lower()), 0)
         
+        # Priority 0: Check for strong positive indicators
+        if has_positive:
+            # Check for very strong positive words
+            very_positive_words = ['menarik', 'ketagihan', 'suka', 'love', 'bagus', 'baik', 'excellent', 'sempurna', 'mantap', 'terbaik']
+            has_very_positive = any(word in text_lower for word in very_positive_words)
+            
+            if has_very_positive and (normalized_label == 'neutral' or normalized_label == 'negative'):
+                normalized_label = 'positive'
+                score = max(positive_score, 0.7)  # High confidence for very positive words
+                print(f"[WARNING] Override: Detected very positive keywords, changing to positive (score: {score:.2f})")
+            elif normalized_label == 'neutral' and positive_score > 0.2:
+                normalized_label = 'positive'
+                score = max(positive_score, 0.65)
+                print(f"[WARNING] Override: Detected positive keywords, changing from neutral to positive (score: {score:.2f})")
+        
         # Priority 1: Check for negative slang/frustration (very strong indicator)
-        if has_negative_slang or is_short_frustrated:
+        elif has_negative_slang or is_short_frustrated:
             if normalized_label != 'negative':
                 normalized_label = 'negative'
                 score = max(negative_score, 0.7)  # High confidence for slang/frustration

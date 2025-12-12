@@ -15,7 +15,11 @@ import {
   Menu,
   X,
   Trash2,
-  Github
+  Github,
+  FileText,
+  List,
+  Info,
+  Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -226,11 +230,10 @@ function AppContent() {
         </div>
       </motion.header>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Mobile Menu Overlay */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
+      {/* Mobile Menu Sidebar */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -238,8 +241,132 @@ function AppContent() {
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
-          )}
-        </AnimatePresence>
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed left-0 top-0 h-full w-80 max-w-[85vw] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-xl z-50 lg:hidden overflow-y-auto"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-6 w-6 text-gray-900 dark:text-gray-100" />
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                      ReviewInsight
+                    </h2>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="h-8 w-8"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                <nav className="space-y-2">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 text-left"
+                    onClick={() => {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <Home className="h-5 w-5" />
+                    <span>Beranda</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 text-left"
+                    onClick={() => {
+                      const element = document.querySelector('[data-section="analyze"]');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <FileText className="h-5 w-5" />
+                    <span>Analisis Review</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 text-left"
+                    onClick={() => {
+                      const element = document.querySelector('[data-section="reviews"]');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <List className="h-5 w-5" />
+                    <span>Semua Review</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 h-12 text-left"
+                    onClick={() => {
+                      fetchReviews();
+                      setMobileMenuOpen(false);
+                    }}
+                    disabled={loadingReviews}
+                  >
+                    <RefreshCw className={cn(
+                      "h-5 w-5",
+                      loadingReviews && "animate-spin"
+                    )} />
+                    <span>Refresh Data</span>
+                  </Button>
+
+                  <div className="border-t border-gray-200 dark:border-gray-800 my-4" />
+
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <div className="flex items-center gap-3">
+                      <Info className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        Tema
+                      </span>
+                    </div>
+                    <ThemeToggle />
+                  </div>
+
+                  <a
+                    href="https://github.com/MarioSitepu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <Github className="h-5 w-5" />
+                    <span>GitHub</span>
+                  </a>
+
+                  <div className="border-t border-gray-200 dark:border-gray-800 my-4" />
+
+                  <div className="px-3 py-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Tentang Aplikasi
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                      ReviewInsight adalah platform analisis review produk dengan AI yang dapat menganalisis sentimen dan mengekstrak poin penting dari review secara otomatis.
+                    </p>
+                  </div>
+                </nav>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
         {/* Split Screen Layout: Desktop, Stacked: Mobile */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
@@ -359,7 +486,10 @@ function AppContent() {
             className="space-y-6 sm:space-y-8 order-1 lg:order-2"
           >
             {/* Input Section */}
-            <Card className="bg-white/50 dark:bg-gray-950/50 backdrop-blur-md border border-gray-200 dark:border-gray-900 shadow-lg">
+            <Card 
+              data-section="analyze"
+              className="bg-white/50 dark:bg-gray-950/50 backdrop-blur-md border border-gray-200 dark:border-gray-900 shadow-lg"
+            >
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-gray-100">
                   Analisis Review Baru
@@ -473,7 +603,10 @@ function AppContent() {
             </Card>
 
             {/* All Reviews Section */}
-            <Card className="bg-white/50 dark:bg-gray-950/50 backdrop-blur-md border border-gray-200 dark:border-gray-900 shadow-lg">
+            <Card 
+              data-section="reviews"
+              className="bg-white/50 dark:bg-gray-950/50 backdrop-blur-md border border-gray-200 dark:border-gray-900 shadow-lg"
+            >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-6 pb-4 gap-4">
                 <div>
                   <CardTitle className="text-lg sm:text-xl text-gray-900 dark:text-gray-100">
