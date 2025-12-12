@@ -22,30 +22,54 @@ default_origins = [
     'http://localhost:5174',
 ]
 
-# For production: allow all Vercel and Render domains by default
-# flask-cors doesn't support wildcards directly, so we use a function
-def get_cors_origins():
-    """Get CORS origins based on environment"""
-    if os.getenv('FLASK_ENV') == 'production':
-        # In production, allow specific origins or use permissive mode
-        if allowed_origins:
-            return allowed_origins
-        else:
-            # Allow all origins in production if not specified (for flexibility)
-            # This allows Vercel preview deployments and Render deployments
-            return "*"
-    else:
-        # In development, use default localhost origins
-        return default_origins
+# Determine if we're in production
+is_production = os.getenv('FLASK_ENV') == 'production' or os.getenv('ENVIRONMENT') == 'production'
 
+# For production: allow all origins by default (for flexibility with Vercel preview deployments)
+# flask-cors doesn't support wildcards like *.vercel.app, so we use "*" for all origins
+if is_production:
+    if allowed_origins:
+        # Use specific origins if provided
+        cors_origins = allowed_origins
+        print(f"[CORS] Production mode: Using specific origins: {cors_origins}")
+    else:
+        # Allow all origins in production if not specified (for flexibility)
+        # This allows Vercel preview deployments and Render deployments
+        cors_origins = "*"
+        print("[CORS] Production mode: Allowing all origins (*)")
+else:
+    # In development, use default localhost origins
+    cors_origins = default_origins
+    print(f"[CORS] Development mode: Using localhost origins: {cors_origins}")
+
+# Configure CORS with explicit options
 CORS(app, resources={
     r"/api/*": {
-        "origins": get_cors_origins(),
+        "origins": cors_origins,
         "methods": ["GET", "POST", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": False
+        "supports_credentials": False,
+        "expose_headers": ["Content-Type"],
+        "max_age": 3600
     }
 })
+
+# Add manual CORS headers for OPTIONS requests (preflight) to ensure they work
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = jsonify({})
+        origin = request.headers.get("Origin", "*")
+        if cors_origins == "*":
+            response.headers.add("Access-Control-Allow-Origin", "*")
+        elif origin in cors_origins:
+            response.headers.add("Access-Control-Allow-Origin", origin)
+        else:
+            response.headers.add("Access-Control-Allow-Origin", cors_origins[0] if cors_origins else "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        response.headers.add("Access-Control-Max-Age", "3600")
+        return response
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
