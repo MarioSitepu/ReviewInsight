@@ -30,11 +30,40 @@ import { cn } from '@/lib/utils';
 
 // API URL configuration
 // Priority: VITE_API_URL env var > production default > dev proxy
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.PROD 
-    ? 'https://review-insight-backend.onrender.com/api'  // Render backend URL
-    : '/api'  // Dev mode uses Vite proxy
-  );
+// IMPORTANT: VITE_API_URL must be set in Vercel environment variables
+const getApiBaseUrl = () => {
+  // Check if VITE_API_URL is explicitly set (highest priority)
+  const envApiUrl = import.meta.env.VITE_API_URL;
+  if (envApiUrl && envApiUrl.trim() !== '') {
+    return envApiUrl.trim();
+  }
+  
+  // Check if we're in production mode
+  const isProduction = import.meta.env.PROD || 
+                       import.meta.env.MODE === 'production' ||
+                       window.location.hostname !== 'localhost';
+  
+  if (isProduction) {
+    // In production, NEVER use localhost - always use Render backend
+    // Default Render backend URL (update with your actual Render service name)
+    const defaultBackend = 'https://review-insight-backend.onrender.com/api';
+    console.warn('[API] VITE_API_URL not set, using default Render backend:', defaultBackend);
+    console.warn('[API] Please set VITE_API_URL in Vercel environment variables!');
+    return defaultBackend;
+  }
+  
+  // In development, use Vite proxy
+  return '/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Debug log
+console.log('[API] API_BASE_URL:', API_BASE_URL);
+console.log('[API] VITE_API_URL env:', import.meta.env.VITE_API_URL);
+console.log('[API] PROD mode:', import.meta.env.PROD);
+console.log('[API] MODE:', import.meta.env.MODE);
+console.log('[API] Hostname:', window.location.hostname);
 
 function AppContent() {
   const { theme } = useTheme();
