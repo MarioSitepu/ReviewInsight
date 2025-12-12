@@ -23,7 +23,21 @@ default_origins = [
 ]
 
 # Determine if we're in production
-is_production = os.getenv('FLASK_ENV') == 'production' or os.getenv('ENVIRONMENT') == 'production'
+# Check multiple environment variables to detect production
+is_production = (
+    os.getenv('FLASK_ENV') == 'production' or 
+    os.getenv('ENVIRONMENT') == 'production' or
+    os.getenv('RENDER') == 'true' or  # Render sets this automatically
+    os.getenv('FLASK_DEBUG') == '0' or
+    (not os.getenv('FLASK_ENV') and not os.getenv('FLASK_DEBUG'))  # Default to production if not explicitly set to dev
+)
+
+# Debug: Print environment variables for troubleshooting
+print(f"[DEBUG] FLASK_ENV: {os.getenv('FLASK_ENV')}")
+print(f"[DEBUG] ENVIRONMENT: {os.getenv('ENVIRONMENT')}")
+print(f"[DEBUG] RENDER: {os.getenv('RENDER')}")
+print(f"[DEBUG] FLASK_DEBUG: {os.getenv('FLASK_DEBUG')}")
+print(f"[DEBUG] is_production: {is_production}")
 
 # For production: allow all origins by default (for flexibility with Vercel preview deployments)
 # flask-cors doesn't support wildcards like *.vercel.app, so we use "*" for all origins
