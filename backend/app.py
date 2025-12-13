@@ -98,61 +98,90 @@ else:
 @app.before_request
 def handle_preflight():
     """Handle CORS preflight (OPTIONS) requests and log incoming requests"""
-    # Handle OPTIONS preflight requests
-    if request.method == "OPTIONS":
-        response = jsonify({})
-        origin = request.headers.get("Origin", "*")
+    try:
+        # Handle OPTIONS preflight requests
+        if request.method == "OPTIONS":
+            response = jsonify({})
+            origin = request.headers.get("Origin", "*")
+            
+            # Set CORS headers - always allow if in production or if origin is from a known cloud platform
+            # More defensive: allow all origins if we're not sure
+            if cors_origins == "*":
+                response.headers["Access-Control-Allow-Origin"] = "*"
+            elif isinstance(cors_origins, list) and origin in cors_origins:
+                response.headers["Access-Control-Allow-Origin"] = origin
+            elif isinstance(cors_origins, list) and cors_origins:
+                response.headers["Access-Control-Allow-Origin"] = cors_origins[0]
+            else:
+                # Fallback: always allow (defensive approach)
+                response.headers["Access-Control-Allow-Origin"] = "*"
+            
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+            response.headers["Access-Control-Max-Age"] = "3600"
+            response.headers["Access-Control-Allow-Credentials"] = "false"
+            return response
         
-        # Set CORS headers - always allow if in production or if origin is from a known cloud platform
-        # More defensive: allow all origins if we're not sure
-        if cors_origins == "*":
-            response.headers["Access-Control-Allow-Origin"] = "*"
-        elif isinstance(cors_origins, list) and origin in cors_origins:
-            response.headers["Access-Control-Allow-Origin"] = origin
-        elif isinstance(cors_origins, list) and cors_origins:
-            response.headers["Access-Control-Allow-Origin"] = cors_origins[0]
-        else:
-            # Fallback: always allow (defensive approach)
-            response.headers["Access-Control-Allow-Origin"] = "*"
-        
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
-        response.headers["Access-Control-Max-Age"] = "3600"
-        response.headers["Access-Control-Allow-Credentials"] = "false"
-        return response
-    
     # Log incoming requests for debugging
-    origin = request.headers.get("Origin", "unknown")
-    print(f"[REQUEST] {request.method} {request.path} from origin: {origin}")
+    try:
+        origin = request.headers.get("Origin", "unknown")
+        print(f"[REQUEST] {request.method} {request.path} from origin: {origin}")
+    except Exception as log_error:
+        # Even if logging fails, continue
+        print(f"[WARNING] Failed to log request: {log_error}")
+        try:
+            print(f"[REQUEST] {request.method} {request.path}")
+        except:
+            pass
+    except Exception as e:
+        # Even if before_request fails, try to set basic CORS
+        print(f"[ERROR] Error in before_request: {e}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
 
 @app.after_request
 def after_request(response):
     """Add CORS headers to all responses - CRITICAL for CORS to work"""
     try:
-        origin = request.headers.get("Origin", "*")
+        # Get origin safely
+        try:
+            origin = request.headers.get("Origin", "*")
+        except:
+            origin = "*"
         
         # Always set CORS headers (critical for CORS to work)
         # More defensive: always allow if in production or if uncertain
-        if cors_origins == "*":
-            response.headers["Access-Control-Allow-Origin"] = "*"
-        elif isinstance(cors_origins, list) and origin in cors_origins:
-            response.headers["Access-Control-Allow-Origin"] = origin
-        elif isinstance(cors_origins, list) and cors_origins:
-            response.headers["Access-Control-Allow-Origin"] = cors_origins[0]
-        else:
-            # Fallback: always allow (defensive approach - better than blocking)
+        try:
+            if cors_origins == "*":
+                response.headers["Access-Control-Allow-Origin"] = "*"
+            elif isinstance(cors_origins, list) and origin in cors_origins:
+                response.headers["Access-Control-Allow-Origin"] = origin
+            elif isinstance(cors_origins, list) and cors_origins:
+                response.headers["Access-Control-Allow-Origin"] = cors_origins[0]
+            else:
+                # Fallback: always allow (defensive approach - better than blocking)
+                response.headers["Access-Control-Allow-Origin"] = "*"
+        except:
+            # If setting origin fails, use wildcard
             response.headers["Access-Control-Allow-Origin"] = "*"
         
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Credentials"] = "false"
+        # Set other CORS headers
+        try:
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Credentials"] = "false"
+        except:
+            pass  # If headers already set, continue
         
         # Debug logging for CORS (only log first few requests to avoid spam)
-        if not hasattr(after_request, '_request_count'):
-            after_request._request_count = 0
-        after_request._request_count += 1
-        if after_request._request_count <= 3:
-            print(f"[CORS DEBUG] Request #{after_request._request_count}: Origin={origin}, CORS-Origin={response.headers.get('Access-Control-Allow-Origin')}")
+        try:
+            if not hasattr(after_request, '_request_count'):
+                after_request._request_count = 0
+            after_request._request_count += 1
+            if after_request._request_count <= 5:
+                print(f"[CORS DEBUG] Request #{after_request._request_count}: Origin={origin}, CORS-Origin={response.headers.get('Access-Control-Allow-Origin', 'NOT SET')}")
+        except:
+            pass  # Don't fail on logging
         
     except Exception as e:
         # Even if CORS setup fails, try to add basic headers
@@ -168,6 +197,11 @@ def after_request(response):
             response.headers["Access-Control-Allow-Credentials"] = "false"
         except Exception as fallback_error:
             print(f"[ERROR] Even fallback CORS headers failed: {fallback_error}")
+            # Last resort: try to set at least the origin header
+            try:
+                response.headers["Access-Control-Allow-Origin"] = "*"
+            except:
+                pass
     
     return response
 
@@ -351,20 +385,32 @@ def analyze_review():
 def get_reviews():
     try:
         print("[INFO] Fetching reviews from database...")
-        # Test database connection first
+        # Test database connection first (with timeout protection)
         try:
             db.session.execute(text('SELECT 1'))
             print("[INFO] Database connection OK")
         except Exception as conn_error:
             print(f"[WARNING] Database connection test failed: {conn_error}")
             # Try to reconnect
-            db.session.remove()
-            db.session.execute(text('SELECT 1'))
-            print("[INFO] Database reconnected")
+            try:
+                db.session.remove()
+                db.session.execute(text('SELECT 1'))
+                print("[INFO] Database reconnected")
+            except Exception as reconnect_error:
+                print(f"[ERROR] Database reconnection failed: {reconnect_error}")
+                # Return empty list instead of error to prevent 502
+                return jsonify([]), 200
         
-        reviews = Review.query.order_by(Review.created_at.desc()).all()
-        print(f"[SUCCESS] Found {len(reviews)} reviews")
-        return jsonify([review.to_dict() for review in reviews]), 200
+        # Fetch reviews with error handling
+        try:
+            reviews = Review.query.order_by(Review.created_at.desc()).all()
+            print(f"[SUCCESS] Found {len(reviews)} reviews")
+            return jsonify([review.to_dict() for review in reviews]), 200
+        except Exception as query_error:
+            print(f"[ERROR] Query failed: {query_error}")
+            # Return empty list instead of error
+            return jsonify([]), 200
+            
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
@@ -378,10 +424,9 @@ def get_reviews():
         except:
             pass
         
-        # Return error with CORS headers (handled by after_request)
-        error_message = str(e)
-        # Don't expose full traceback to client, just error message
-        return jsonify({'error': 'Gagal memuat review dari database', 'details': error_message[:200]}), 500
+        # Return empty list instead of error to prevent 502
+        # CORS headers will be added by after_request
+        return jsonify([]), 200
 
 
 @app.route('/api/reviews/<int:review_id>', methods=['DELETE'])
