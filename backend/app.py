@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from datetime import datetime
@@ -57,62 +56,49 @@ else:
     cors_origins = default_origins
     print(f"[CORS] Development mode: Using localhost origins: {cors_origins}")
 
-# Configure CORS with explicit options
-CORS(app, resources={
-    r"/api/*": {
-        "origins": cors_origins,
-        "methods": ["GET", "POST", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": False,
-        "expose_headers": ["Content-Type"],
-        "max_age": 3600
-    }
-})
+# Handle CORS manually for better control and reliability
+# We'll handle all CORS headers manually instead of using Flask-CORS to avoid conflicts
 
-# Add manual CORS headers for OPTIONS requests (preflight) to ensure they work
-# Use set() instead of add() to avoid duplicates
 @app.before_request
 def handle_preflight():
+    """Handle CORS preflight (OPTIONS) requests"""
     if request.method == "OPTIONS":
         response = jsonify({})
         origin = request.headers.get("Origin", "*")
+        
+        # Set CORS headers
         if cors_origins == "*":
-            response.headers.set("Access-Control-Allow-Origin", "*")
+            response.headers["Access-Control-Allow-Origin"] = "*"
         elif isinstance(cors_origins, list) and origin in cors_origins:
-            response.headers.set("Access-Control-Allow-Origin", origin)
+            response.headers["Access-Control-Allow-Origin"] = origin
         elif isinstance(cors_origins, list) and cors_origins:
-            response.headers.set("Access-Control-Allow-Origin", cors_origins[0])
+            response.headers["Access-Control-Allow-Origin"] = cors_origins[0]
         else:
-            response.headers.set("Access-Control-Allow-Origin", "*")
-        response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        response.headers.set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-        response.headers.set("Access-Control-Max-Age", "3600")
+            response.headers["Access-Control-Allow-Origin"] = "*"
+        
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+        response.headers["Access-Control-Max-Age"] = "3600"
         return response
 
-# Add CORS headers to all responses (including errors)
-# Use set() instead of add() to avoid duplicate headers (Flask-CORS may already add them)
 @app.after_request
 def after_request(response):
-    # Only add CORS headers if they don't already exist (Flask-CORS may have added them)
+    """Add CORS headers to all responses"""
     origin = request.headers.get("Origin", "*")
     
-    # Set (not add) CORS headers to avoid duplicates
+    # Set CORS headers (always override to ensure they're present)
     if cors_origins == "*":
-        response.headers.set("Access-Control-Allow-Origin", "*")
+        response.headers["Access-Control-Allow-Origin"] = "*"
     elif isinstance(cors_origins, list) and origin in cors_origins:
-        response.headers.set("Access-Control-Allow-Origin", origin)
+        response.headers["Access-Control-Allow-Origin"] = origin
     elif isinstance(cors_origins, list) and cors_origins:
-        response.headers.set("Access-Control-Allow-Origin", cors_origins[0])
+        response.headers["Access-Control-Allow-Origin"] = cors_origins[0]
     else:
-        response.headers.set("Access-Control-Allow-Origin", "*")
+        response.headers["Access-Control-Allow-Origin"] = "*"
     
-    # Only set headers if they don't exist
-    if "Access-Control-Allow-Headers" not in response.headers:
-        response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-    if "Access-Control-Allow-Methods" not in response.headers:
-        response.headers.set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-    if "Access-Control-Allow-Credentials" not in response.headers:
-        response.headers.set("Access-Control-Allow-Credentials", "false")
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Credentials"] = "false"
     
     return response
 
@@ -131,16 +117,18 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Connection pooling configuration for better reliability
 # These settings help with connection timeouts and SSL issues
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,  # Verify connections before using them
-    'pool_recycle': 300,    # Recycle connections after 5 minutes
-    'pool_size': 5,         # Number of connections to maintain
-    'max_overflow': 10,     # Additional connections beyond pool_size
-    'connect_args': {
-        'connect_timeout': 10,  # Connection timeout in seconds
-        'sslmode': 'require'    # Force SSL for Neon
+# Note: connect_args for sslmode should be in the URL, not here
+# But we can still configure pool settings
+try:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,  # Verify connections before using them
+        'pool_recycle': 300,    # Recycle connections after 5 minutes
+        'pool_size': 5,         # Number of connections to maintain
+        'max_overflow': 10,     # Additional connections beyond pool_size
     }
-}
+    print("[INFO] Database engine options configured")
+except Exception as e:
+    print(f"[WARNING] Could not set engine options: {e}")
 
 db = SQLAlchemy(app)
 
@@ -166,8 +154,13 @@ class Review(db.Model):
 
 
 # Create tables
-with app.app_context():
-    db.create_all()
+try:
+    with app.app_context():
+        db.create_all()
+        print("[INFO] Database tables initialized")
+except Exception as e:
+    print(f"[WARNING] Could not create tables: {e}")
+    print("[INFO] Tables may already exist or database connection failed")
 
 
 @app.route('/api/analyze-review', methods=['POST'])
