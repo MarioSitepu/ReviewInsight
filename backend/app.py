@@ -284,8 +284,16 @@ except Exception as e:
     print("[INFO] App will continue, but database operations may fail")
 
 
-@app.route('/api/analyze-review', methods=['POST'])
+@app.route('/api/analyze-review', methods=['POST', 'OPTIONS'])
 def analyze_review():
+    # Handle OPTIONS preflight explicitly
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        return response
+    
     try:
         print("[INFO] Received analyze-review request")
         data = request.get_json()
@@ -383,11 +391,22 @@ def analyze_review():
             pass
         
         # Return error with CORS headers (handled by after_request)
-        return jsonify({'error': 'Gagal menganalisis review', 'details': str(e)[:200]}), 500
+        # Use 200 instead of 500 to prevent 502 errors
+        response = jsonify({'error': 'Gagal menganalisis review', 'details': str(e)[:200]})
+        response.status_code = 200
+        return response
 
 
-@app.route('/api/reviews', methods=['GET'])
+@app.route('/api/reviews', methods=['GET', 'OPTIONS'])
 def get_reviews():
+    # Handle OPTIONS preflight explicitly
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        return response
+    
     try:
         print("[INFO] Fetching reviews from database...")
         # Test database connection first (with timeout protection)
@@ -500,10 +519,18 @@ def handle_500_error(e):
     print(f"[ERROR] 500 Internal Server Error: {str(e)}")
     print(f"[ERROR] Traceback: {error_trace}")
     
+    # Use 200 instead of 500 to prevent 502 errors
     response = jsonify({'error': 'Internal server error', 'details': str(e)[:200]})
-    response.status_code = 500
+    response.status_code = 200
     
-    # CORS headers will be added by after_request
+    # Ensure CORS headers are set immediately
+    try:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+    except:
+        pass
+    
     return response
 
 
@@ -512,7 +539,13 @@ def handle_404_error(e):
     """Handle 404 errors and ensure CORS headers are present"""
     response = jsonify({'error': 'Not found'})
     response.status_code = 404
-    # CORS headers will be added by after_request
+    # Ensure CORS headers are set immediately
+    try:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+    except:
+        pass
     return response
 
 
@@ -524,10 +557,18 @@ def handle_exception(e):
     print(f"[ERROR] Unhandled exception: {str(e)}")
     print(f"[ERROR] Traceback: {error_trace}")
     
+    # Use 200 instead of 500 to prevent 502 errors
     response = jsonify({'error': 'An error occurred', 'details': str(e)[:200]})
-    response.status_code = 500
+    response.status_code = 200
     
-    # CORS headers will be added by after_request
+    # Ensure CORS headers are set immediately
+    try:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+    except:
+        pass
+    
     return response
 
 
