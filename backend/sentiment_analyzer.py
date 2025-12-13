@@ -1,33 +1,71 @@
 from transformers import pipeline
 import os
+import threading
 
 # Initialize sentiment analysis pipeline
 sentiment_pipeline = None
+model_loading = False
+preload_started = False
+model_loading_lock = threading.Lock()
 
 
-def get_sentiment_pipeline():
-    global sentiment_pipeline
-    if sentiment_pipeline is None:
-        print("[INFO] Mengunduh model sentiment analysis... (pertama kali bisa memakan waktu 5-10 menit)")
-        print("       Model: cardiffnlp/twitter-roberta-base-sentiment-latest (~500MB)")
-        # Using a pre-trained model for sentiment analysis
-        # Use device_map="cpu" to force CPU usage and reduce memory
-        try:
-            sentiment_pipeline = pipeline(
-                "sentiment-analysis",
-                model="cardiffnlp/twitter-roberta-base-sentiment-latest",
-                return_all_scores=True,
-                device=-1  # Use CPU (-1) instead of GPU to reduce memory usage
-            )
-        except Exception as e:
-            # Fallback without device specification
-            print(f"[WARNING] Error setting device, using default: {e}")
-            sentiment_pipeline = pipeline(
-                "sentiment-analysis",
-                model="cardiffnlp/twitter-roberta-base-sentiment-latest",
-                return_all_scores=True
-            )
-        print("[SUCCESS] Model berhasil dimuat!")
+def get_sentiment_pipeline(allow_loading=True):
+    """
+    Get sentiment pipeline, loading if needed (thread-safe)
+    
+    Args:
+        allow_loading: If False, don't trigger loading (for request handlers)
+                      If True, can trigger loading (for background preload)
+    """
+    global sentiment_pipeline, model_loading, preload_started
+    
+    # If already loaded, return it
+    if sentiment_pipeline is not None:
+        return sentiment_pipeline
+    
+    # Check if another thread is loading it
+    with model_loading_lock:
+        if model_loading:
+            # Model is being loaded by another thread, return None to indicate not ready
+            return None
+        
+        # If preload hasn't started and we're in a request handler, don't load synchronously
+        if not allow_loading and not preload_started:
+            # Background preload should handle this, return None
+            return None
+        
+        if sentiment_pipeline is None:
+            # Start loading
+            model_loading = True
+            preload_started = True
+            try:
+                print("[INFO] Mengunduh model sentiment analysis... (pertama kali bisa memakan waktu 5-10 menit)")
+                print("       Model: cardiffnlp/twitter-roberta-base-sentiment-latest (~500MB)")
+                # Using a pre-trained model for sentiment analysis
+                # Use device_map="cpu" to force CPU usage and reduce memory
+                try:
+                    sentiment_pipeline = pipeline(
+                        "sentiment-analysis",
+                        model="cardiffnlp/twitter-roberta-base-sentiment-latest",
+                        return_all_scores=True,
+                        device=-1  # Use CPU (-1) instead of GPU to reduce memory usage
+                    )
+                except Exception as e:
+                    # Fallback without device specification
+                    print(f"[WARNING] Error setting device, using default: {e}")
+                    sentiment_pipeline = pipeline(
+                        "sentiment-analysis",
+                        model="cardiffnlp/twitter-roberta-base-sentiment-latest",
+                        return_all_scores=True
+                    )
+                print("[SUCCESS] Model berhasil dimuat!")
+            except Exception as e:
+                print(f"[ERROR] Failed to load model: {e}")
+                import traceback
+                print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            finally:
+                model_loading = False
+    
     return sentiment_pipeline
 
 

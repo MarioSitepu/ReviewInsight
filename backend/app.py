@@ -4,6 +4,7 @@ from sqlalchemy import text
 from datetime import datetime
 import os
 import sys
+import threading
 from dotenv import load_dotenv
 
 # Load environment variables first
@@ -263,8 +264,17 @@ def analyze_review():
         # Analyze sentiment using Hugging Face
         print(f"[INFO] Menganalisis sentimen untuk review: {review_text[:50]}...")
         try:
-            sentiment_result = analyze_sentiment(review_text)
-            print(f"[SUCCESS] Sentimen: {sentiment_result['label']} (score: {sentiment_result.get('score', 0):.2f})")
+            # Check if model is loaded (non-blocking)
+            from sentiment_analyzer import sentiment_pipeline
+            
+            # If model is not loaded yet, use fallback (don't wait for it)
+            if sentiment_pipeline is None:
+                print("[WARNING] Model still loading, using fallback sentiment analysis")
+                sentiment_result = {'label': 'neutral', 'score': 0.5}
+            else:
+                # Model is loaded, use it
+                sentiment_result = analyze_sentiment(review_text)
+                print(f"[SUCCESS] Sentimen: {sentiment_result['label']} (score: {sentiment_result.get('score', 0):.2f})")
         except Exception as sent_error:
             print(f"[ERROR] Sentiment analysis failed: {sent_error}")
             import traceback
@@ -405,9 +415,21 @@ def health_check():
         except Exception as db_error:
             db_status = f'error: {str(db_error)[:50]}'
         
+        # Check model loading status (non-blocking)
+        model_status = 'unknown'
+        try:
+            from sentiment_analyzer import sentiment_pipeline
+            if sentiment_pipeline is not None:
+                model_status = 'loaded'
+            else:
+                model_status = 'loading'
+        except:
+            model_status = 'unknown'
+        
         return jsonify({
             'status': 'healthy',
             'database': db_status,
+            'model_status': model_status,
             'timestamp': datetime.utcnow().isoformat()
         }), 200
     except Exception as e:
@@ -459,6 +481,29 @@ def handle_exception(e):
     return response
 
 
+# Background model preloading function
+def preload_models():
+    """Preload AI models in background after startup"""
+    try:
+        print("[INFO] Starting background model preloading...")
+        # Preload sentiment model (allow_loading=True for background thread)
+        try:
+            from sentiment_analyzer import get_sentiment_pipeline
+            print("[INFO] Preloading sentiment analysis model...")
+            get_sentiment_pipeline(allow_loading=True)
+            print("[SUCCESS] Sentiment model preloaded")
+        except Exception as e:
+            print(f"[WARNING] Failed to preload sentiment model: {e}")
+            import traceback
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        
+        # Note: Key points extractor uses API calls, no preloading needed
+        print("[INFO] Model preloading completed")
+    except Exception as e:
+        print(f"[ERROR] Model preloading error: {e}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+
 # Startup message
 print("=" * 50)
 print("ReviewInsight Backend Server")
@@ -469,8 +514,14 @@ print(f"CORS origins: {cors_origins}")
 print(f"Database URL: {database_url[:50]}..." if len(database_url) > 50 else f"Database URL: {database_url}")
 print("=" * 50)
 print("[INFO] Server is ready to accept requests")
-print("[INFO] Models will be loaded on first request (lazy loading)")
+print("[INFO] Starting background model preloading...")
 print("=" * 50)
+
+# Start model preloading in background thread (non-blocking)
+# This ensures models are ready when needed, but doesn't block startup
+model_preload_thread = threading.Thread(target=preload_models, daemon=True)
+model_preload_thread.start()
+print("[INFO] Model preloading started in background thread")
 
 if __name__ == '__main__':
     # Development mode
