@@ -12,7 +12,6 @@ echo "PORT: $PORT"
 echo "Workers: 1 (reduced for memory efficiency)"
 echo "Threads: 2"
 echo "Timeout: 300s (increased for AI processing)"
-echo "Keepalive: 75s"
 echo "=========================================="
 
 # Use single worker to reduce memory usage (torch + transformers are heavy)
@@ -23,7 +22,6 @@ exec gunicorn \
     --workers 1 \
     --threads 2 \
     --timeout 300 \
-    --keepalive 75 \
     --worker-class gthread \
     --worker-connections 1000 \
     --max-requests 1000 \
