@@ -121,7 +121,12 @@ def handle_preflight():
             response.headers["Access-Control-Max-Age"] = "3600"
             response.headers["Access-Control-Allow-Credentials"] = "false"
             return response
-        
+    except Exception as e:
+        # Even if before_request fails, try to set basic CORS
+        print(f"[ERROR] Error in before_request: {e}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+    
     # Log incoming requests for debugging
     try:
         origin = request.headers.get("Origin", "unknown")
