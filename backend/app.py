@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 from sqlalchemy import text
 from datetime import datetime
 import os
 import sys
 import threading
+import atexit
 from dotenv import load_dotenv
 
 # Load environment variables first
@@ -12,6 +14,33 @@ load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Enable CORS for all routes using Flask-CORS (most reliable method)
+# This will handle all CORS automatically, including preflight requests
+CORS(app, resources={
+    r"/api/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": False,
+        "max_age": 3600
+    }
+})
+print("[INFO] Flask-CORS enabled for all /api/* routes with origins: *")
+
+# Add very early request logging at Flask level
+@app.before_request
+def log_all_requests_early():
+    """Log ALL requests as early as possible - even before CORS handling"""
+    try:
+        method = request.method
+        path = request.path
+        origin = request.headers.get("Origin", "none")
+        print(f"[EARLY REQUEST] {method} {path} from origin: {origin}")
+    except Exception as e:
+        print(f"[EARLY REQUEST ERROR] Failed to log: {e}")
+    # Don't return anything - let request continue
+    return None
 
 # Import AI modules with error handling
 # Don't exit on import errors - allow app to start and handle errors at request time
@@ -138,11 +167,6 @@ def handle_preflight():
             print(f"[REQUEST] {request.method} {request.path}")
         except:
             pass
-    except Exception as e:
-        # Even if before_request fails, try to set basic CORS
-        print(f"[ERROR] Error in before_request: {e}")
-        import traceback
-        print(f"[ERROR] Traceback: {traceback.format_exc()}")
 
 @app.after_request
 def after_request(response):
