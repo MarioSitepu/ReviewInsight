@@ -99,22 +99,40 @@ def handle_preflight():
 
 @app.after_request
 def after_request(response):
-    """Add CORS headers to all responses"""
-    origin = request.headers.get("Origin", "*")
-    
-    # Set CORS headers (always override to ensure they're present)
-    if cors_origins == "*":
-        response.headers["Access-Control-Allow-Origin"] = "*"
-    elif isinstance(cors_origins, list) and origin in cors_origins:
-        response.headers["Access-Control-Allow-Origin"] = origin
-    elif isinstance(cors_origins, list) and cors_origins:
-        response.headers["Access-Control-Allow-Origin"] = cors_origins[0]
-    else:
-        response.headers["Access-Control-Allow-Origin"] = "*"
-    
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Credentials"] = "false"
+    """Add CORS headers to all responses - CRITICAL for CORS to work"""
+    try:
+        origin = request.headers.get("Origin", "*")
+        
+        # Always set CORS headers (critical for CORS to work)
+        if cors_origins == "*":
+            response.headers["Access-Control-Allow-Origin"] = "*"
+        elif isinstance(cors_origins, list) and origin in cors_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+        elif isinstance(cors_origins, list) and cors_origins:
+            response.headers["Access-Control-Allow-Origin"] = cors_origins[0]
+        else:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+        
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Credentials"] = "false"
+        
+        # Debug logging for CORS (only log first few requests to avoid spam)
+        if not hasattr(after_request, '_request_count'):
+            after_request._request_count = 0
+        after_request._request_count += 1
+        if after_request._request_count <= 3:
+            print(f"[CORS DEBUG] Request #{after_request._request_count}: Origin={origin}, CORS-Origin={response.headers.get('Access-Control-Allow-Origin')}")
+        
+    except Exception as e:
+        # Even if CORS setup fails, try to add basic headers
+        print(f"[ERROR] Failed to set CORS headers: {e}")
+        try:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+        except:
+            pass
     
     return response
 
@@ -195,36 +213,67 @@ except Exception as e:
 @app.route('/api/analyze-review', methods=['POST'])
 def analyze_review():
     try:
+        print("[INFO] Received analyze-review request")
         data = request.get_json()
         
         if not data or 'review_text' not in data:
+            print("[ERROR] Missing review_text in request")
             return jsonify({'error': 'review_text is required'}), 400
         
         review_text = data['review_text'].strip()
         
         if not review_text:
+            print("[ERROR] Empty review_text")
             return jsonify({'error': 'review_text cannot be empty'}), 400
         
         # Analyze sentiment using Hugging Face
         print(f"[INFO] Menganalisis sentimen untuk review: {review_text[:50]}...")
-        sentiment_result = analyze_sentiment(review_text)
-        print(f"[SUCCESS] Sentimen: {sentiment_result['label']} (score: {sentiment_result.get('score', 0):.2f})")
+        try:
+            sentiment_result = analyze_sentiment(review_text)
+            print(f"[SUCCESS] Sentimen: {sentiment_result['label']} (score: {sentiment_result.get('score', 0):.2f})")
+        except Exception as sent_error:
+            print(f"[ERROR] Sentiment analysis failed: {sent_error}")
+            import traceback
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            return jsonify({'error': 'Gagal menganalisis sentimen', 'details': str(sent_error)[:200]}), 500
         
         # Extract key points using AI (Groq/Hugging Face/Gemini) or smart extraction
         print("[INFO] Mengekstrak poin penting...")
-        key_points = extract_key_points(review_text)
-        print("[SUCCESS] Poin penting berhasil diekstrak")
+        try:
+            key_points = extract_key_points(review_text)
+            print("[SUCCESS] Poin penting berhasil diekstrak")
+        except Exception as kp_error:
+            print(f"[ERROR] Key points extraction failed: {kp_error}")
+            import traceback
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            # Use fallback if extraction fails
+            key_points = "Poin penting tidak dapat diekstrak"
         
         # Save to database
-        review = Review(
-            review_text=review_text,
-            sentiment=sentiment_result['label'],
-            sentiment_score=sentiment_result.get('score', 0.0),
-            key_points=key_points
-        )
-        
-        db.session.add(review)
-        db.session.commit()
+        try:
+            review = Review(
+                review_text=review_text,
+                sentiment=sentiment_result['label'],
+                sentiment_score=sentiment_result.get('score', 0.0),
+                key_points=key_points
+            )
+            
+            db.session.add(review)
+            db.session.commit()
+            print(f"[SUCCESS] Review saved with ID: {review.id}")
+        except Exception as db_error:
+            print(f"[ERROR] Database save failed: {db_error}")
+            db.session.rollback()
+            import traceback
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            # Return result even if save fails
+            return jsonify({
+                'review_text': review_text,
+                'sentiment': sentiment_result['label'],
+                'sentiment_score': sentiment_result.get('score', 0.0),
+                'key_points': key_points,
+                'warning': 'Review tidak dapat disimpan ke database'
+            }), 201
         
         return jsonify({
             'id': review.id,
@@ -236,8 +285,19 @@ def analyze_review():
         }), 201
         
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[ERROR] Unexpected error in analyze_review: {str(e)}")
+        print(f"[ERROR] Traceback: {error_trace}")
+        
+        # Try to rollback database session
+        try:
+            db.session.rollback()
+        except:
+            pass
+        
+        # Return error with CORS headers (handled by after_request)
+        return jsonify({'error': 'Gagal menganalisis review', 'details': str(e)[:200]}), 500
 
 
 @app.route('/api/reviews', methods=['GET'])
@@ -300,6 +360,46 @@ def delete_review(review_id):
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy'}), 200
+
+
+# Global error handler to ensure CORS headers are always present
+@app.errorhandler(500)
+def handle_500_error(e):
+    """Handle 500 errors and ensure CORS headers are present"""
+    import traceback
+    error_trace = traceback.format_exc()
+    print(f"[ERROR] 500 Internal Server Error: {str(e)}")
+    print(f"[ERROR] Traceback: {error_trace}")
+    
+    response = jsonify({'error': 'Internal server error', 'details': str(e)[:200]})
+    response.status_code = 500
+    
+    # CORS headers will be added by after_request
+    return response
+
+
+@app.errorhandler(404)
+def handle_404_error(e):
+    """Handle 404 errors and ensure CORS headers are present"""
+    response = jsonify({'error': 'Not found'})
+    response.status_code = 404
+    # CORS headers will be added by after_request
+    return response
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Handle all unhandled exceptions and ensure CORS headers are present"""
+    import traceback
+    error_trace = traceback.format_exc()
+    print(f"[ERROR] Unhandled exception: {str(e)}")
+    print(f"[ERROR] Traceback: {error_trace}")
+    
+    response = jsonify({'error': 'An error occurred', 'details': str(e)[:200]})
+    response.status_code = 500
+    
+    # CORS headers will be added by after_request
+    return response
 
 
 if __name__ == '__main__':
