@@ -11,20 +11,25 @@ echo "=========================================="
 echo "PORT: $PORT"
 echo "Workers: 1 (reduced for memory efficiency)"
 echo "Threads: 2"
-echo "Timeout: 120s"
+echo "Timeout: 300s (increased for AI processing)"
 echo "=========================================="
 
 # Use single worker to reduce memory usage (torch + transformers are heavy)
 # Render free tier has limited memory, so we use 1 worker instead of 2
+# Increased timeout to 300s because AI model processing can take time
 exec gunicorn \
     --bind 0.0.0.0:$PORT \
     --workers 1 \
     --threads 2 \
-    --timeout 120 \
+    --timeout 300 \
+    --keepalive 75 \
     --worker-class gthread \
     --worker-connections 1000 \
     --max-requests 1000 \
     --max-requests-jitter 50 \
     --preload \
+    --log-level info \
+    --access-logfile - \
+    --error-logfile - \
     app:app
 

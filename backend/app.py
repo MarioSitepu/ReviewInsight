@@ -77,7 +77,8 @@ else:
 
 @app.before_request
 def handle_preflight():
-    """Handle CORS preflight (OPTIONS) requests"""
+    """Handle CORS preflight (OPTIONS) requests and log incoming requests"""
+    # Handle OPTIONS preflight requests
     if request.method == "OPTIONS":
         response = jsonify({})
         origin = request.headers.get("Origin", "*")
@@ -96,6 +97,10 @@ def handle_preflight():
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
         response.headers["Access-Control-Max-Age"] = "3600"
         return response
+    
+    # Log incoming requests for debugging
+    origin = request.headers.get("Origin", "unknown")
+    print(f"[REQUEST] {request.method} {request.path} from origin: {origin}")
 
 @app.after_request
 def after_request(response):
