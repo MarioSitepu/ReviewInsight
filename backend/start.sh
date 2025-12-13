@@ -12,6 +12,7 @@ echo "PORT: $PORT"
 echo "Workers: 1 (reduced for memory efficiency)"
 echo "Threads: 2"
 echo "Timeout: 300s (increased for AI processing)"
+echo "Keepalive: 75s"
 echo "=========================================="
 
 # Use single worker to reduce memory usage (torch + transformers are heavy)

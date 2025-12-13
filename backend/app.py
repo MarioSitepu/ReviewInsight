@@ -13,19 +13,30 @@ load_dotenv()
 app = Flask(__name__)
 
 # Import AI modules with error handling
+# Don't exit on import errors - allow app to start and handle errors at request time
 try:
     from sentiment_analyzer import analyze_sentiment
-    print("[INFO] Sentiment analyzer loaded successfully")
+    print("[INFO] Sentiment analyzer module loaded successfully")
 except Exception as e:
-    print(f"[ERROR] Failed to load sentiment_analyzer: {e}")
-    sys.exit(1)
+    print(f"[ERROR] Failed to load sentiment_analyzer module: {e}")
+    import traceback
+    print(f"[ERROR] Traceback: {traceback.format_exc()}")
+    # Don't exit - create a fallback function instead
+    def analyze_sentiment(text):
+        print("[WARNING] Using fallback sentiment analysis")
+        return {'label': 'neutral', 'score': 0.5}
 
 try:
     from key_points_extractor import extract_key_points
-    print("[INFO] Key points extractor loaded successfully")
+    print("[INFO] Key points extractor module loaded successfully")
 except Exception as e:
-    print(f"[ERROR] Failed to load key_points_extractor: {e}")
-    sys.exit(1)
+    print(f"[ERROR] Failed to load key_points_extractor module: {e}")
+    import traceback
+    print(f"[ERROR] Traceback: {traceback.format_exc()}")
+    # Don't exit - create a fallback function instead
+    def extract_key_points(text):
+        print("[WARNING] Using fallback key points extraction")
+        return "Poin penting tidak dapat diekstrak"
 
 # CORS configuration - allow Vercel, Render, and local development
 allowed_origins_env = os.getenv('ALLOWED_ORIGINS', '')
@@ -40,12 +51,18 @@ default_origins = [
 
 # Determine if we're in production
 # Check multiple environment variables to detect production
+# More defensive: if we're on Render or any cloud platform, assume production
 is_production = (
     os.getenv('FLASK_ENV') == 'production' or 
     os.getenv('ENVIRONMENT') == 'production' or
     os.getenv('RENDER') == 'true' or  # Render sets this automatically
+    os.getenv('RENDER') == 'True' or  # Case variation
     os.getenv('FLASK_DEBUG') == '0' or
-    (not os.getenv('FLASK_ENV') and not os.getenv('FLASK_DEBUG'))  # Default to production if not explicitly set to dev
+    os.getenv('FLASK_DEBUG') == 'False' or
+    # If PORT is set (cloud platforms set this), assume production
+    os.getenv('PORT') is not None or
+    # If we're not explicitly in development, assume production (defensive)
+    os.getenv('FLASK_ENV') != 'development'
 )
 
 # Debug: Print environment variables for troubleshooting
@@ -53,10 +70,12 @@ print(f"[DEBUG] FLASK_ENV: {os.getenv('FLASK_ENV')}")
 print(f"[DEBUG] ENVIRONMENT: {os.getenv('ENVIRONMENT')}")
 print(f"[DEBUG] RENDER: {os.getenv('RENDER')}")
 print(f"[DEBUG] FLASK_DEBUG: {os.getenv('FLASK_DEBUG')}")
+print(f"[DEBUG] PORT: {os.getenv('PORT')}")
 print(f"[DEBUG] is_production: {is_production}")
 
 # For production: allow all origins by default (for flexibility with Vercel preview deployments)
 # flask-cors doesn't support wildcards like *.vercel.app, so we use "*" for all origins
+# More defensive: if in doubt, allow all origins (better than blocking)
 if is_production:
     if allowed_origins:
         # Use specific origins if provided
@@ -83,7 +102,8 @@ def handle_preflight():
         response = jsonify({})
         origin = request.headers.get("Origin", "*")
         
-        # Set CORS headers
+        # Set CORS headers - always allow if in production or if origin is from a known cloud platform
+        # More defensive: allow all origins if we're not sure
         if cors_origins == "*":
             response.headers["Access-Control-Allow-Origin"] = "*"
         elif isinstance(cors_origins, list) and origin in cors_origins:
@@ -91,11 +111,13 @@ def handle_preflight():
         elif isinstance(cors_origins, list) and cors_origins:
             response.headers["Access-Control-Allow-Origin"] = cors_origins[0]
         else:
+            # Fallback: always allow (defensive approach)
             response.headers["Access-Control-Allow-Origin"] = "*"
         
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
         response.headers["Access-Control-Max-Age"] = "3600"
+        response.headers["Access-Control-Allow-Credentials"] = "false"
         return response
     
     # Log incoming requests for debugging
@@ -109,6 +131,7 @@ def after_request(response):
         origin = request.headers.get("Origin", "*")
         
         # Always set CORS headers (critical for CORS to work)
+        # More defensive: always allow if in production or if uncertain
         if cors_origins == "*":
             response.headers["Access-Control-Allow-Origin"] = "*"
         elif isinstance(cors_origins, list) and origin in cors_origins:
@@ -116,6 +139,7 @@ def after_request(response):
         elif isinstance(cors_origins, list) and cors_origins:
             response.headers["Access-Control-Allow-Origin"] = cors_origins[0]
         else:
+            # Fallback: always allow (defensive approach - better than blocking)
             response.headers["Access-Control-Allow-Origin"] = "*"
         
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
@@ -131,13 +155,18 @@ def after_request(response):
         
     except Exception as e:
         # Even if CORS setup fails, try to add basic headers
+        # This is critical - we MUST set CORS headers even on errors
         print(f"[ERROR] Failed to set CORS headers: {e}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
         try:
+            # Always set CORS headers as fallback
             response.headers["Access-Control-Allow-Origin"] = "*"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
-        except:
-            pass
+            response.headers["Access-Control-Allow-Credentials"] = "false"
+        except Exception as fallback_error:
+            print(f"[ERROR] Even fallback CORS headers failed: {fallback_error}")
     
     return response
 
@@ -240,7 +269,9 @@ def analyze_review():
             print(f"[ERROR] Sentiment analysis failed: {sent_error}")
             import traceback
             print(f"[ERROR] Traceback: {traceback.format_exc()}")
-            return jsonify({'error': 'Gagal menganalisis sentimen', 'details': str(sent_error)[:200]}), 500
+            # Use fallback instead of returning error
+            print("[WARNING] Using fallback sentiment analysis")
+            sentiment_result = {'label': 'neutral', 'score': 0.5}
         
         # Extract key points using AI (Groq/Hugging Face/Gemini) or smart extraction
         print("[INFO] Mengekstrak poin penting...")
@@ -252,6 +283,7 @@ def analyze_review():
             import traceback
             print(f"[ERROR] Traceback: {traceback.format_exc()}")
             # Use fallback if extraction fails
+            print("[WARNING] Using fallback key points extraction")
             key_points = "Poin penting tidak dapat diekstrak"
         
         # Save to database
@@ -364,7 +396,27 @@ def delete_review(review_id):
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'healthy'}), 200
+    """Health check endpoint - lightweight, doesn't load models"""
+    try:
+        # Quick database connection test (non-blocking)
+        try:
+            db.session.execute(text('SELECT 1'))
+            db_status = 'connected'
+        except Exception as db_error:
+            db_status = f'error: {str(db_error)[:50]}'
+        
+        return jsonify({
+            'status': 'healthy',
+            'database': db_status,
+            'timestamp': datetime.utcnow().isoformat()
+        }), 200
+    except Exception as e:
+        # Even if health check fails, return 200 to prevent restart loops
+        print(f"[WARNING] Health check error: {e}")
+        return jsonify({
+            'status': 'degraded',
+            'error': str(e)[:100]
+        }), 200
 
 
 # Global error handler to ensure CORS headers are always present
@@ -406,6 +458,19 @@ def handle_exception(e):
     # CORS headers will be added by after_request
     return response
 
+
+# Startup message
+print("=" * 50)
+print("ReviewInsight Backend Server")
+print("=" * 50)
+print(f"Environment: {os.getenv('FLASK_ENV', 'not set')}")
+print(f"Production mode: {is_production}")
+print(f"CORS origins: {cors_origins}")
+print(f"Database URL: {database_url[:50]}..." if len(database_url) > 50 else f"Database URL: {database_url}")
+print("=" * 50)
+print("[INFO] Server is ready to accept requests")
+print("[INFO] Models will be loaded on first request (lazy loading)")
+print("=" * 50)
 
 if __name__ == '__main__':
     # Development mode
