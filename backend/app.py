@@ -3,13 +3,29 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from datetime import datetime
 import os
+import sys
 from dotenv import load_dotenv
-from sentiment_analyzer import analyze_sentiment
-from key_points_extractor import extract_key_points
 
+# Load environment variables first
 load_dotenv()
 
+# Initialize Flask app
 app = Flask(__name__)
+
+# Import AI modules with error handling
+try:
+    from sentiment_analyzer import analyze_sentiment
+    print("[INFO] Sentiment analyzer loaded successfully")
+except Exception as e:
+    print(f"[ERROR] Failed to load sentiment_analyzer: {e}")
+    sys.exit(1)
+
+try:
+    from key_points_extractor import extract_key_points
+    print("[INFO] Key points extractor loaded successfully")
+except Exception as e:
+    print(f"[ERROR] Failed to load key_points_extractor: {e}")
+    sys.exit(1)
 
 # CORS configuration - allow Vercel, Render, and local development
 allowed_origins_env = os.getenv('ALLOWED_ORIGINS', '')
@@ -153,14 +169,27 @@ class Review(db.Model):
         }
 
 
-# Create tables
+# Create tables - wrap in try-except to prevent crash
 try:
     with app.app_context():
-        db.create_all()
-        print("[INFO] Database tables initialized")
+        # Test database connection first
+        try:
+            db.session.execute(text('SELECT 1'))
+            print("[INFO] Database connection test successful")
+        except Exception as conn_error:
+            print(f"[WARNING] Database connection test failed: {conn_error}")
+            print("[INFO] Will retry when first request comes in")
+        
+        # Create tables
+        try:
+            db.create_all()
+            print("[INFO] Database tables initialized")
+        except Exception as table_error:
+            print(f"[WARNING] Could not create tables: {table_error}")
+            print("[INFO] Tables may already exist")
 except Exception as e:
-    print(f"[WARNING] Could not create tables: {e}")
-    print("[INFO] Tables may already exist or database connection failed")
+    print(f"[WARNING] Database initialization error: {e}")
+    print("[INFO] App will continue, but database operations may fail")
 
 
 @app.route('/api/analyze-review', methods=['POST'])
