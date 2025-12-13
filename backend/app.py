@@ -288,25 +288,38 @@ except Exception as e:
 def analyze_review():
     # Handle OPTIONS preflight explicitly
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        return response
+        try:
+            response = jsonify({})
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+            return response
+        except Exception as e:
+            print(f"[ERROR] OPTIONS handler failed: {e}")
+            response = jsonify({})
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            return response
     
+    # Wrap entire function to ensure we always return with CORS
     try:
         print("[INFO] Received analyze-review request")
         data = request.get_json()
         
         if not data or 'review_text' not in data:
             print("[ERROR] Missing review_text in request")
-            return jsonify({'error': 'review_text is required'}), 400
+            response = jsonify({'error': 'review_text is required'})
+            response.status_code = 200  # Use 200 instead of 400
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            return response
         
         review_text = data['review_text'].strip()
         
         if not review_text:
             print("[ERROR] Empty review_text")
-            return jsonify({'error': 'review_text cannot be empty'}), 400
+            response = jsonify({'error': 'review_text cannot be empty'})
+            response.status_code = 200  # Use 200 instead of 400
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            return response
         
         # Analyze sentiment using Hugging Face
         print(f"[INFO] Menganalisis sentimen untuk review: {review_text[:50]}...")
@@ -361,22 +374,28 @@ def analyze_review():
             import traceback
             print(f"[ERROR] Traceback: {traceback.format_exc()}")
             # Return result even if save fails
-            return jsonify({
+            response = jsonify({
                 'review_text': review_text,
                 'sentiment': sentiment_result['label'],
                 'sentiment_score': sentiment_result.get('score', 0.0),
                 'key_points': key_points,
                 'warning': 'Review tidak dapat disimpan ke database'
-            }), 201
+            })
+            response.status_code = 200
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            return response
         
-        return jsonify({
+        response = jsonify({
             'id': review.id,
             'review_text': review.review_text,
             'sentiment': review.sentiment,
             'sentiment_score': review.sentiment_score,
             'key_points': review.key_points,
             'created_at': review.created_at.isoformat() if review.created_at else None
-        }), 201
+        })
+        response.status_code = 200
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
         
     except Exception as e:
         import traceback
@@ -390,23 +409,41 @@ def analyze_review():
         except:
             pass
         
-        # Return error with CORS headers (handled by after_request)
+        # Return error with CORS headers immediately
         # Use 200 instead of 500 to prevent 502 errors
-        response = jsonify({'error': 'Gagal menganalisis review', 'details': str(e)[:200]})
-        response.status_code = 200
-        return response
+        try:
+            response = jsonify({'error': 'Gagal menganalisis review', 'details': str(e)[:200]})
+            response.status_code = 200
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+            return response
+        except Exception as resp_error:
+            # Last resort - return minimal response
+            print(f"[ERROR] Even error response failed: {resp_error}")
+            from flask import Response
+            resp = Response('{"error":"Internal error"}', mimetype='application/json', status=200)
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            return resp
 
 
 @app.route('/api/reviews', methods=['GET', 'OPTIONS'])
 def get_reviews():
     # Handle OPTIONS preflight explicitly
     if request.method == 'OPTIONS':
-        response = jsonify({})
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        return response
+        try:
+            response = jsonify({})
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+            return response
+        except Exception as e:
+            print(f"[ERROR] OPTIONS handler failed: {e}")
+            response = jsonify({})
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            return response
     
+    # Wrap entire function to ensure we always return with CORS
     try:
         print("[INFO] Fetching reviews from database...")
         # Test database connection first (with timeout protection)
@@ -429,11 +466,17 @@ def get_reviews():
         try:
             reviews = Review.query.order_by(Review.created_at.desc()).all()
             print(f"[SUCCESS] Found {len(reviews)} reviews")
-            return jsonify([review.to_dict() for review in reviews]), 200
+            response = jsonify([review.to_dict() for review in reviews])
+            response.status_code = 200
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            return response
         except Exception as query_error:
             print(f"[ERROR] Query failed: {query_error}")
             # Return empty list instead of error
-            return jsonify([]), 200
+            response = jsonify([])
+            response.status_code = 200
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            return response
             
     except Exception as e:
         import traceback
@@ -449,8 +492,13 @@ def get_reviews():
             pass
         
         # Return empty list instead of error to prevent 502
-        # CORS headers will be added by after_request
-        return jsonify([]), 200
+        # Set CORS headers immediately
+        response = jsonify([])
+        response.status_code = 200
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        return response
 
 
 @app.route('/api/reviews/<int:review_id>', methods=['DELETE'])
