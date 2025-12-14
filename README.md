@@ -1,82 +1,125 @@
 # Product Review Analyzer
 
-A full-stack web application that analyzes product reviews by extracting sentiment (positive/negative/neutral) using Hugging Face and key points using Google Gemini AI. Results are stored in a PostgreSQL database and displayed in a modern React frontend.
+Aplikasi web full-stack yang menganalisis review produk dengan mengekstrak sentiment (positif/negatif/netral) menggunakan Hugging Face dan key points menggunakan AI (Google Gemini atau Groq). Hasil disimpan dalam database PostgreSQL dan ditampilkan di frontend React yang modern.
 
-## Features
+## Fitur
 
-- 📝 **Review Input**: Users can input product reviews via a text form
-- 🎯 **Sentiment Analysis**: Automatically analyzes sentiment (positive/negative/neutral) using Hugging Face's transformer models
-- 💡 **Key Points Extraction**: Extracts key points from reviews using Google Gemini AI
-- 💾 **Database Storage**: Saves all analysis results to PostgreSQL database
-- 📊 **Results Display**: Beautiful React UI showing analysis results and review history
-- ⚡ **Error Handling**: Comprehensive error handling and loading states
+- 📝 **Input Review**: Pengguna dapat memasukkan review produk melalui form teks
+- 🎯 **Analisis Sentiment**: Secara otomatis menganalisis sentiment (positif/negatif/netral) menggunakan model transformer Hugging Face
+- 💡 **Ekstraksi Key Points**: Mengekstrak poin-poin penting dari review menggunakan AI (Google Gemini atau Groq)
+- 💾 **Penyimpanan Database**: Menyimpan semua hasil analisis ke database PostgreSQL
+- 📊 **Tampilan Hasil**: UI React yang indah menampilkan hasil analisis dan riwayat review
+- ⚡ **Penanganan Error**: Penanganan error yang komprehensif dan loading states
+- 🌓 **Dark/Light Mode**: Dukungan mode terang dan gelap untuk kenyamanan pengguna
+- 📱 **Responsive Design**: Tampilan yang responsif untuk desktop dan mobile
+
+## Screenshots
+
+### Tampilan Utama
+
+![Tampilan Home](ScreenshootReviewAnalyzer/tampilan-home.png)
+**Tampilan Home** - Halaman utama aplikasi dengan form input review
+
+![Tampilan Desktop Light Mode](ScreenshootReviewAnalyzer/tampilan-desktop-lightmode.png)
+**Tampilan Desktop Light Mode** - Tampilan aplikasi pada desktop dengan mode terang
+
+![Tampilan Desktop Dark Mode](ScreenshootReviewAnalyzer/tampilan-desktop-dark-mode.png)
+**Tampilan Desktop Dark Mode** - Tampilan aplikasi pada desktop dengan mode gelap
+
+![Tampilan Mobile](ScreenshootReviewAnalyzer/tampilan-hp.png)
+**Tampilan Mobile** - Tampilan aplikasi yang responsif pada perangkat mobile
+
+### Fitur Aplikasi
+
+![Box Menulis Review](ScreenshootReviewAnalyzer/box-menulis-review.png)
+**Box Menulis Review** - Form untuk menulis dan mengirim review produk
+
+![Box Hasil Review](ScreenshootReviewAnalyzer/box-hasil-review.png)
+**Box Hasil Review** - Tampilan hasil analisis review yang menampilkan sentiment dan key points
+
+![Review Terbaru](ScreenshootReviewAnalyzer/review-terbaru.png)
+**Review Terbaru** - Daftar review terbaru yang telah dianalisis
+
+![History Review](ScreenshootReviewAnalyzer/history-review.png)
+**History Review** - Riwayat semua review yang telah dianalisis sebelumnya
+
+> **Catatan**: Link website yang tersedia hanya untuk tampilan front-end saja. Backend API harus dijalankan secara terpisah untuk fungsi analisis review berjalan dengan baik.
 
 ## Tech Stack
 
 ### Backend
-- **Flask**: Python web framework
-- **SQLAlchemy**: ORM for database operations
-- **PostgreSQL**: Relational database
-- **Hugging Face Transformers**: Sentiment analysis
-- **Google Gemini API**: Key points extraction
+- **Flask**: Framework web Python
+- **SQLAlchemy**: ORM untuk operasi database
+- **PostgreSQL**: Database relasional
+- **Hugging Face Transformers**: Analisis sentiment
+- **Google Gemini API** atau **Groq API**: Ekstraksi key points (dapat dipilih)
 
 ### Frontend
-- **React**: UI framework
+- **React**: Framework UI
+- **Vite**: Build tool dan development server
 - **Axios**: HTTP client
-- **CSS3**: Modern styling with gradients and animations
+- **Tailwind CSS**: Framework CSS utility-first
+- **CSS3**: Styling modern dengan gradients dan animasi
 
-## Project Structure
+## Struktur Project
 
 ```
 TugasPemWeb3/
 ├── backend/
-│   ├── app.py                 # Main Flask application
-│   ├── sentiment_analyzer.py  # Sentiment analysis using Hugging Face
-│   ├── key_points_extractor.py # Key points extraction using Gemini
-│   ├── requirements.txt       # Python dependencies
-│   └── .env.example          # Environment variables template
+│   ├── app.py                 # Aplikasi Flask utama
+│   ├── sentiment_analyzer.py  # Analisis sentiment menggunakan Hugging Face
+│   ├── key_points_extractor.py # Ekstraksi key points menggunakan Gemini/Groq
+│   ├── requirements.txt       # Dependencies Python
+│   ├── .env.example          # Template environment variables
+│   └── Dockerfile            # Konfigurasi Docker untuk backend
 ├── frontend/
 │   ├── src/
-│   │   ├── App.js            # Main React component
-│   │   ├── App.css           # Component styles
-│   │   ├── index.js          # React entry point
-│   │   └── index.css         # Global styles
+│   │   ├── App.jsx           # Komponen React utama
+│   │   ├── main.jsx          # Entry point React
+│   │   ├── index.css         # Global styles
+│   │   └── components/       # Komponen-komponen React
 │   ├── public/
 │   │   └── index.html        # HTML template
-│   └── package.json          # Node.js dependencies
-└── README.md                 # This file
+│   ├── package.json          # Dependencies Node.js
+│   └── Dockerfile            # Konfigurasi Docker untuk frontend
+├── ScreenshootReviewAnalyzer/ # Screenshot aplikasi
+├── render.yaml               # Konfigurasi deployment Render
+├── docker-compose.yml        # Konfigurasi Docker Compose
+└── README.md                 # File ini
 ```
 
-## Prerequisites
+## Persyaratan
 
-Before you begin, ensure you have the following installed:
+Sebelum memulai, pastikan Anda telah menginstall:
 
 - **Python 3.8+**
-- **Node.js 14+** and npm
+- **Node.js 14+** dan npm
 - **Database**: 
-  - **Recommended**: Neon (Serverless PostgreSQL) - [Setup Guide](SETUP_NEON_DATABASE.md)
-  - **Alternative**: PostgreSQL 12+ (local installation)
-- **Google Gemini API Key** (Get it from [Google AI Studio](https://makersuite.google.com/app/apikey))
+  - **Direkomendasikan**: Neon (Serverless PostgreSQL) - Gratis dan mudah digunakan
+  - **Alternatif**: PostgreSQL 12+ (instalasi lokal)
+- **API Key AI** (pilih salah satu):
+  - **Google Gemini API Key** (Dapatkan dari [Google AI Studio](https://makersuite.google.com/app/apikey))
+  - **Groq API Key** (Dapatkan dari [Groq Console](https://console.groq.com/))
 
-## Setup Instructions
+## Instruksi Setup
 
-### 1. Database Setup
+### 1. Setup Database
 
-**Option A: Neon (Serverless PostgreSQL) ⭐ Recommended**
+**Opsi A: Neon (Serverless PostgreSQL) ⭐ Direkomendasikan**
 
 Neon adalah serverless PostgreSQL yang gratis dan mudah digunakan:
 
 1. **Daftar di Neon**: https://neon.tech
 2. **Buat project baru** di dashboard
-3. **Copy connection string** dari Neon dashboard
-4. **Paste ke `.env` file**:
+3. **Salin connection string** dari Neon dashboard
+4. **Tempel ke file `.env`**:
    ```env
    DATABASE_URL=postgresql://user:pass@ep-xxx-xxx.region.aws.neon.tech/dbname?sslmode=require
    ```
 
-**📖 Panduan lengkap**: Lihat [SETUP_NEON_DATABASE.md](SETUP_NEON_DATABASE.md)
+**📖 Panduan lengkap**: Daftar di https://neon.tech dan ikuti panduan setup database di dashboard
 
-**Option B: Local PostgreSQL**
+**Opsi B: PostgreSQL Lokal**
 
 Jika ingin menggunakan PostgreSQL lokal:
 
@@ -96,15 +139,15 @@ CREATE DATABASE review_analyzer;
 \q
 ```
 
-### 2. Backend Setup
+### 2. Setup Backend
 
-1. Navigate to the backend directory:
+1. Masuk ke direktori backend:
 
 ```bash
 cd backend
 ```
 
-2. Create a virtual environment (recommended):
+2. Buat virtual environment (disarankan):
 
 ```bash
 # Windows
@@ -116,61 +159,87 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-3. Install Python dependencies:
+3. Install dependencies Python:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file in the backend directory:
+4. Buat file `.env` di direktori backend:
 
 ```bash
-cp .env.example .env
+# Windows
+copy env_example.txt .env
+
+# Linux/Mac
+cp env_example.txt .env
 ```
 
-5. Edit `.env` file with your configuration:
+5. Edit file `.env` dengan konfigurasi Anda:
 
 ```env
-# Database - Use Neon connection string (recommended)
+# Database - Gunakan Neon connection string (direkomendasikan)
 DATABASE_URL=postgresql://user:pass@ep-xxx-xxx.region.aws.neon.tech/dbname?sslmode=require
 
-# AI API Keys
+# API Keys AI - Pilih salah satu atau keduanya
+# Untuk menggunakan Gemini, isi GEMINI_API_KEY
 GEMINI_API_KEY=your_gemini_api_key_here
+
+# Untuk menggunakan Groq, isi GROQ_API_KEY
 GROQ_API_KEY=your_groq_api_key_here
+
+# API Key untuk Hugging Face (opsional, untuk akses model premium)
 HUGGINGFACE_API_KEY=your_huggingface_api_key_here
 ```
 
-**Note**: 
+**Catatan Penting**: 
+- Anda dapat menggunakan **Gemini** atau **Groq** untuk ekstraksi key points
+- Jika kedua API key diisi, aplikasi akan menggunakan Gemini sebagai default
 - Untuk Neon: Dapatkan connection string dari https://console.neon.tech
-- Untuk local PostgreSQL: `postgresql://username:password@localhost:5432/review_analyzer`
+- Untuk PostgreSQL lokal: `postgresql://username:password@localhost:5432/review_analyzer`
 
-### 3. Frontend Setup
+**Cara Mendapatkan API Key:**
 
-1. Navigate to the frontend directory:
+- **Google Gemini API Key**:
+  1. Kunjungi https://makersuite.google.com/app/apikey
+  2. Login dengan akun Google
+  3. Klik "Create API Key"
+  4. Salin API key yang dihasilkan
+
+- **Groq API Key**:
+  1. Kunjungi https://console.groq.com/
+  2. Buat akun atau login
+  3. Buka bagian "API Keys"
+  4. Klik "Create API Key"
+  5. Salin API key yang dihasilkan
+
+### 3. Setup Frontend
+
+1. Masuk ke direktori frontend:
 
 ```bash
 cd frontend
 ```
 
-2. Install Node.js dependencies:
+2. Install dependencies Node.js:
 
 ```bash
 npm install
 ```
 
-3. Create a `.env` file in the frontend directory (optional):
+3. Buat file `.env` di direktori frontend (opsional):
 
 ```env
-REACT_APP_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5000/api
 ```
 
-If not set, it defaults to `http://localhost:5000/api`.
+Jika tidak diatur, default ke `http://localhost:5000/api`.
 
-## Running the Application
+## Menjalankan Aplikasi
 
-### Start Backend Server
+### Menjalankan Backend Server
 
-1. Activate your virtual environment (if not already activated):
+1. Aktifkan virtual environment (jika belum diaktifkan):
 
 ```bash
 cd backend
@@ -181,40 +250,40 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-2. Run the Flask application:
+2. Jalankan aplikasi Flask:
 
 ```bash
 python app.py
 ```
 
-The backend server will start on `http://localhost:5000`
+Server backend akan berjalan di `http://localhost:5000`
 
-### Start Frontend Development Server
+### Menjalankan Frontend Development Server
 
-1. In a new terminal, navigate to the frontend directory:
+1. Di terminal baru, masuk ke direktori frontend:
 
 ```bash
 cd frontend
 ```
 
-2. Start the React development server:
+2. Jalankan development server React:
 
 ```bash
-npm start
+npm run dev
 ```
 
-The frontend will automatically open in your browser at `http://localhost:3000`
+Frontend akan otomatis terbuka di browser di `http://localhost:5173` (atau port yang tersedia)
 
 ## API Endpoints
 
 ### POST /api/analyze-review
 
-Analyze a new product review.
+Menganalisis review produk baru.
 
 **Request Body:**
 ```json
 {
-  "review_text": "This product is amazing! Great quality and fast shipping."
+  "review_text": "Produk ini luar biasa! Kualitas bagus dan pengiriman cepat."
 }
 ```
 
@@ -222,17 +291,17 @@ Analyze a new product review.
 ```json
 {
   "id": 1,
-  "review_text": "This product is amazing! Great quality and fast shipping.",
+  "review_text": "Produk ini luar biasa! Kualitas bagus dan pengiriman cepat.",
   "sentiment": "positive",
   "sentiment_score": 0.98,
-  "key_points": "• Product quality is excellent\n• Shipping is fast\n• Overall positive experience",
+  "key_points": "• Kualitas produk sangat baik\n• Pengiriman cepat\n• Pengalaman keseluruhan positif",
   "created_at": "2024-01-15T10:30:00"
 }
 ```
 
 ### GET /api/reviews
 
-Get all analyzed reviews.
+Mendapatkan semua review yang telah dianalisis.
 
 **Response:**
 ```json
@@ -250,7 +319,7 @@ Get all analyzed reviews.
 
 ### GET /api/health
 
-Health check endpoint.
+Endpoint health check.
 
 **Response:**
 ```json
@@ -259,97 +328,110 @@ Health check endpoint.
 }
 ```
 
-## Usage
+## Cara Penggunaan
 
-1. **Analyze a Review**: 
-   - Enter your product review in the text area
-   - Click "Analyze Review" button
-   - Wait for the analysis to complete (this may take a few seconds)
+1. **Menganalisis Review**: 
+   - Masukkan review produk Anda di area teks
+   - Klik tombol "Analyze Review"
+   - Tunggu hingga analisis selesai (mungkin memakan waktu beberapa detik)
 
-2. **View Results**:
-   - Sentiment analysis result (positive/negative/neutral) with confidence score
-   - Extracted key points from the review
+2. **Melihat Hasil**:
+   - Hasil analisis sentiment (positif/negatif/netral) dengan confidence score
+   - Key points yang diekstrak dari review
 
-3. **View All Reviews**:
-   - Scroll down to see all previously analyzed reviews
-   - Click "Refresh" to reload the list
-   - Expand "Key Points" to see detailed analysis
+3. **Melihat Semua Review**:
+   - Scroll ke bawah untuk melihat semua review yang telah dianalisis sebelumnya
+   - Klik "Refresh" untuk memuat ulang daftar
+   - Buka "Key Points" untuk melihat analisis detail
 
-## Error Handling
+## Penanganan Error
 
-The application includes comprehensive error handling:
+Aplikasi ini mencakup penanganan error yang komprehensif:
 
-- **Empty Review Text**: Shows error if review text is empty
-- **API Errors**: Displays user-friendly error messages
-- **Database Errors**: Handles database connection issues gracefully
-- **Loading States**: Shows loading indicators during API calls
+- **Review Text Kosong**: Menampilkan error jika review text kosong
+- **Error API**: Menampilkan pesan error yang user-friendly
+- **Error Database**: Menangani masalah koneksi database dengan baik
+- **Loading States**: Menampilkan indikator loading selama API call
 
 ## Troubleshooting
 
-### Backend Issues
+### Masalah Backend
 
-1. **Database Connection Error**:
-   - Verify PostgreSQL is running
-   - Check DATABASE_URL in `.env` file
-   - Ensure database exists
+1. **Error Koneksi Database**:
+   - Verifikasi PostgreSQL sedang berjalan
+   - Periksa DATABASE_URL di file `.env`
+   - Pastikan database sudah dibuat
 
-2. **Gemini API Error**:
-   - Verify GEMINI_API_KEY is set correctly in `.env`
-   - Check API key is valid and has quota
+2. **Error API Gemini/Groq**:
+   - Verifikasi GEMINI_API_KEY atau GROQ_API_KEY sudah diatur dengan benar di `.env`
+   - Periksa API key valid dan memiliki quota
+   - Pastikan koneksi internet tersedia
 
-3. **Sentiment Analysis Slow**:
-   - First run may take time to download the model
-   - Subsequent runs will be faster
+3. **Analisis Sentiment Lambat**:
+   - Run pertama mungkin memakan waktu untuk download model
+   - Run selanjutnya akan lebih cepat
 
-### Frontend Issues
+4. **AI Tidak Berfungsi**:
+   - Pastikan minimal satu API key (GEMINI_API_KEY atau GROQ_API_KEY) sudah diisi
+   - Periksa log backend untuk melihat error detail
+   - Verifikasi API key memiliki quota yang tersedia
 
-1. **Cannot Connect to Backend**:
-   - Verify backend server is running on port 5000
-   - Check REACT_APP_API_URL in frontend `.env`
+### Masalah Frontend
 
-2. **CORS Errors**:
-   - Backend has CORS enabled for localhost
-   - Check flask-cors is installed
+1. **Tidak Bisa Terhubung ke Backend**:
+   - Verifikasi server backend berjalan di port 5000
+   - Periksa VITE_API_URL di frontend `.env`
+   - Pastikan tidak ada firewall yang memblokir koneksi
 
-## Development Notes
+2. **Error CORS**:
+   - Backend sudah memiliki CORS enabled untuk localhost
+   - Periksa flask-cors sudah terinstall
 
-- The sentiment analysis model (`cardiffnlp/twitter-roberta-base-sentiment-latest`) will be downloaded on first use (~500MB)
-- Gemini API requires internet connection and valid API key
-- Database tables are created automatically on first run
+## Catatan Pengembangan
+
+- Model analisis sentiment (`cardiffnlp/twitter-roberta-base-sentiment-latest`) akan di-download pada penggunaan pertama (~500MB)
+- API Gemini/Groq memerlukan koneksi internet dan API key yang valid
+- Tabel database dibuat otomatis pada run pertama
+- Aplikasi mendukung penggunaan Gemini atau Groq untuk ekstraksi key points
+- Jika kedua API key tersedia, aplikasi akan menggunakan Gemini sebagai default
 
 ## Deployment
 
-### Option 1: Render dengan Docker ⭐ Recommended
+### Opsi 1: Render dengan Docker ⭐ Direkomendasikan
 
-**Best for:** Full-stack deployment, Docker support, auto-deploy, HTTPS gratis
+**Terbaik untuk:** Deployment full-stack, dukungan Docker, auto-deploy, HTTPS gratis
 
 1. **Deploy Backend & Frontend ke Render:**
-   - Follow guide: [DEPLOY_RENDER.md](DEPLOY_RENDER.md)
+   - Setup menggunakan `render.yaml` yang tersedia di repository
+   - Pastikan semua environment variables sudah diatur di Render dashboard
 
-**Benefits:**
-- ✅ Free tier available
-- ✅ Docker support
-- ✅ Auto-deploy from GitHub
+**Keuntungan:**
+- ✅ Free tier tersedia
+- ✅ Dukungan Docker
+- ✅ Auto-deploy dari GitHub
 - ✅ HTTPS otomatis
 - ✅ Custom domain gratis
-- ✅ Easy setup dengan render.yaml
+- ✅ Setup mudah dengan render.yaml
 
-### Option 2: Vercel (Frontend) + PythonAnywhere (Backend)
+### Opsi 2: Vercel (Frontend) + PythonAnywhere (Backend)
 
-**Best for:** Free hosting, easy setup, great for personal projects
+**Terbaik untuk:** Hosting gratis, setup mudah, bagus untuk project personal
 
-1. **Deploy Backend to PythonAnywhere:**
-   - Follow guide: [DEPLOY_VERCEL_PYTHONANYWHERE.md](DEPLOY_VERCEL_PYTHONANYWHERE.md#part-1-deploy-backend-ke-pythonanywhere)
+1. **Deploy Backend ke PythonAnywhere:**
+   - Setup backend Flask di PythonAnywhere dengan konfigurasi WSGI
+   - Atur environment variables di PythonAnywhere dashboard
 
-2. **Deploy Frontend to Vercel:**
-   - Follow guide: [DEPLOY_VERCEL_PYTHONANYWHERE.md](DEPLOY_VERCEL_PYTHONANYWHERE.md#part-2-deploy-frontend-ke-vercel)
+2. **Deploy Frontend ke Vercel:**
+   - Deploy frontend React ke Vercel dengan konfigurasi environment variables
+   - Pastikan VITE_API_URL mengarah ke URL backend yang sudah di-deploy
 
-### Option 2: Docker Compose (Full Stack)
+### Opsi 3: Docker Compose (Full Stack)
 
-1. **Configure environment:**
+1. **Konfigurasi environment:**
    ```bash
-   cp .env.example .env
-   # Edit .env with your API keys and database password
+   cd backend
+   cp env_example.txt .env
+   # Edit .env dengan API keys dan database password
    ```
 
 2. **Deploy:**
@@ -361,24 +443,62 @@ The application includes comprehensive error handling:
    deploy.bat
    ```
 
-3. **Access:**
+3. **Akses:**
    - Frontend: http://localhost:80
    - Backend API: http://localhost:5000
 
-### Option 3: Other Cloud Platforms
+### Opsi 4: Platform Cloud Lainnya
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for:
-- Docker deployment
-- Heroku deployment
-- AWS/Azure/GCP deployment
-- Production configuration
-- Monitoring and troubleshooting
+Untuk deployment ke platform cloud lainnya:
+- Docker deployment menggunakan Dockerfile yang tersedia
+- Heroku deployment dengan konfigurasi Procfile
+- AWS/Azure/GCP deployment dengan konfigurasi sesuai platform
 
-## License
+**Catatan Deployment:**
+- Pastikan semua environment variables sudah diatur di platform deployment
+- Untuk production, gunakan database yang reliable (Neon direkomendasikan)
+- Pastikan API keys (Gemini atau Groq) sudah diatur dengan benar
+- Aktifkan HTTPS untuk keamanan data
 
-This project is created for educational purposes.
+## Konfigurasi AI (Gemini atau Groq)
+
+Aplikasi ini mendukung penggunaan dua provider AI untuk ekstraksi key points:
+
+### Menggunakan Google Gemini
+
+1. Dapatkan API key dari [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Tambahkan ke file `.env`:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   ```
+
+### Menggunakan Groq
+
+1. Dapatkan API key dari [Groq Console](https://console.groq.com/)
+2. Tambahkan ke file `.env`:
+   ```env
+   GROQ_API_KEY=your_groq_api_key_here
+   ```
+
+### Prioritas Penggunaan
+
+- Jika **kedua API key** tersedia, aplikasi akan menggunakan **Gemini** sebagai default
+- Jika hanya **satu API key** yang tersedia, aplikasi akan menggunakan yang tersedia
+- Pastikan minimal **satu API key** sudah diatur untuk ekstraksi key points berfungsi
+
+**Perbandingan:**
+
+| Fitur | Google Gemini | Groq |
+|-------|---------------|------|
+| Kecepatan | Sedang | Sangat Cepat |
+| Kualitas | Sangat Baik | Baik |
+| Gratis | Ya (dengan quota) | Ya (dengan quota) |
+| Model | Gemini Pro | Llama 3 |
+
+## Lisensi
+
+Project ini dibuat untuk keperluan edukasi.
 
 ## Author
 
-Created for Tugas PemWeb 3
-
+Dibuat untuk Tugas PemWeb 3
